@@ -1,0 +1,57 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Firebase service account
+firebase-adminsdk.json
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# YOLO model (large file)
+best.pt
+best.onnx
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Data (test files, can be large)
+data/
+
+# Backend outputs (video files, large)
+backend/outputs/
+
+# Test files
+test_*.py
+
+# Misc
+*.egg
+*.whl
