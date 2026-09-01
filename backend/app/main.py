@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes import image, video, auth, alert, route, incidents, profile, live_alerts, weather, fire_spread, notifications
 from app.models.yolo import get_model
+from app.config import download_model
 
 app = FastAPI(
     title="Fire & Smoke Detection API",
@@ -33,6 +34,7 @@ app.include_router(notifications.router)
 
 @app.on_event("startup")
 async def load_model():
+    await download_model()
     get_model()
     print("Model loaded successfully")
 

@@ -52,6 +52,9 @@ backend/outputs/
 # Test files
 test_*.py
 
+# Vercel build artifacts
+backend/api/
+
 # Misc
 *.egg
 *.whl
