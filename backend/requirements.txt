@@ -9,3 +9,4 @@ httpx
 pydantic[email]
 requests
 firebase-admin
+python-dotenv
