@@ -147,12 +147,6 @@ npm run dev
 
 Frontend runs at `http://localhost:5173`
 
-### Public URL (Cloudflare Tunnel)
-
-```bash
-cloudflared tunnel --url http://localhost:8000
-```
-
 ## Environment Variables
 
 ### Backend (.env)
@@ -168,19 +162,6 @@ SUPABASE_STORAGE_BUCKET=fire-media
 ```
 VITE_API_BASE_URL=http://localhost:8000
 ```
-
-## Deployment
-
-### Backend — Local PC + Cloudflare Tunnel
-
-1. Run backend locally
-2. `cloudflared tunnel --url http://localhost:8000`
-3. Get public URL
-
-### Frontend — Cloudflare Pages
-
-1. `cd dashboard && npm run build`
-2. Upload `dist/` folder to Cloudflare Pages
 
 ## Citizen Level System
 
@@ -200,4 +181,24 @@ VITE_API_BASE_URL=http://localhost:8000
 
 ## License
 
-MIT
+MIT License
+
+Copyright (c) 2026 MuhammadHamza123c
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
