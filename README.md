@@ -2,12 +2,6 @@
 
 Real-time fire and smoke detection powered by YOLO AI. Citizens report incidents, track active fires on an interactive satellite map, and help their communities stay safe.
 
-## Live Demo
-
-- **Frontend:** [fireguard.muhammadhamzao241.workers.dev](https://fireguard.muhammadhamzao241.workers.dev)
-- **Backend API:** [boston-historic-phases-ecological.trycloudflare.com](https://boston-historic-phases-ecological.trycloudflare.com)
-- **API Docs:** [boston-historic-phases-ecological.trycloudflare.com/docs](https://boston-historic-phases-ecological.trycloudflare.com/docs)
-
 ## Features
 
 ### Detection
