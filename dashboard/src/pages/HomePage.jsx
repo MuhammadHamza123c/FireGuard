@@ -378,7 +378,7 @@ export default function HomePage() {
 
           {/* Heading — elegant single flow */}
           <h1 className="text-5xl sm:text-6xl md:text-[5.5rem] font-extrabold leading-[1.1] tracking-tight mb-8">
-            <span className="bg-gradient-to-r from-red-400 via-orange-400 to-amber-300 bg-clip-text text-transparent">Wildfires</span>
+            <span className="bg-gradient-to-r from-red-400 via-orange-400 to-amber-300 bg-clip-text text-transparent">Fire & Smoke</span>
             <span className="text-white/90"> Detected in </span>
             <span className="bg-gradient-to-r from-red-400 via-orange-400 to-amber-300 bg-clip-text text-transparent">Real-Time</span>
           </h1>

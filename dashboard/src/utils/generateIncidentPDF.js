@@ -65,7 +65,7 @@ export function generateIncidentPDF(incidents, stats) {
   doc.rect(0, 0, pageWidth, 40, 'F');
 
   y = addText(safeText('FIRE DETECTION REPORT'), margin, y + 6, { size: 20, style: 'bold', r: 180, g: 50, b: 30 });
-  y = addText(safeText('AI-Powered Wildfire Detection System'), margin, y + 1, { size: 9, r: 100, g: 100, b: 110 });
+  y = addText(safeText('AI-Powered Fire & Smoke Detection System'), margin, y + 1, { size: 9, r: 100, g: 100, b: 110 });
 
   const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   y = addText(`Generated: ${dateStr}`, margin, y + 2, { size: 8, r: 120, g: 120, b: 130 });
