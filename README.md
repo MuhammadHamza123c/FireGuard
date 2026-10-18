@@ -166,6 +166,30 @@ VITE_API_BASE_URL=/api
 
 Use the exact Project URL from Supabase **Project Settings → API**. Never put secret values in source code or expose backend secrets as `VITE_` variables. Redeploy after saving environment variables.
 
+### Supabase Storage policies for video upload
+
+The video upload UI sends videos directly to the `fire-media` bucket using the signed-in user's Supabase token, then asks the backend to process the stored object. In the Supabase SQL Editor, add policies that restrict uploads and reads to each user's own folder:
+
+```sql
+drop policy if exists "Users upload own fire media" on storage.objects;
+create policy "Users upload own fire media"
+on storage.objects for insert to authenticated
+with check (
+  bucket_id = 'fire-media'
+  and (storage.foldername(name))[1] = (select auth.uid()::text)
+);
+
+drop policy if exists "Users read own fire media" on storage.objects;
+create policy "Users read own fire media"
+on storage.objects for select to authenticated
+using (
+  bucket_id = 'fire-media'
+  and (storage.foldername(name))[1] = (select auth.uid()::text)
+);
+```
+
+Keep the `fire-media` bucket public if uploaded media should remain accessible through the public URLs returned by the existing API.
+
 ### Local development
 
 #### Backend (.env)

@@ -4,6 +4,47 @@ import ResultCards from '../components/ResultCards';
 import FireAlertModal from '../components/FireAlertModal';
 import Toast from '../components/Toast';
 import api from '../api/axios';
+import { Upload as TusUpload } from 'tus-js-client';
+
+async function uploadAndProcessVideo(file, fileName, position, onProgress) {
+  const { data: target } = await api.post('/video_upload', { file_name: fileName });
+  const accessToken = localStorage.getItem('token');
+  if (!accessToken) {
+    throw new Error('Your session expired. Please sign in again.');
+  }
+
+  await new Promise((resolve, reject) => {
+    const upload = new TusUpload(file, {
+      endpoint: target.endpoint,
+      headers: {
+        apikey: target.apikey,
+        Authorization: `Bearer ${accessToken}`,
+      },
+      metadata: {
+        bucketName: target.bucket,
+        objectName: target.object_path,
+        contentType: file.type || 'video/mp4',
+      },
+      chunkSize: 6 * 1024 * 1024,
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      onProgress: (uploaded, total) => onProgress?.(Math.round((uploaded / total) * 100)),
+      onError: reject,
+      onSuccess: resolve,
+    });
+    upload.start();
+  });
+
+  const formData = new FormData();
+  formData.append('storage_path', target.object_path);
+  if (position) {
+    formData.append('latitude', position.coords.latitude);
+    formData.append('longitude', position.coords.longitude);
+  }
+
+  const response = await api.post('/video_processing', formData);
+  return response.data;
+}
 
 export default function FireDetectPage() {
   const [result, setResult] = useState(null);
@@ -76,6 +117,7 @@ function FileUpload({ onResult }) {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const inputRef = useRef();
 
   const handleFile = (f) => {
@@ -94,23 +136,27 @@ function FileUpload({ onResult }) {
   const handleDetect = async () => {
     if (!file) return;
     setLoading(true);
+    setUploadProgress(0);
     try {
       const pos = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
       }).catch(() => null);
 
-      const fd = new FormData();
-      fd.append('file', file);
-      if (pos) {
-        fd.append('latitude', pos.coords.latitude);
-        fd.append('longitude', pos.coords.longitude);
-      }
-
       const isVideo = file.type.startsWith('video/');
-      const res = await api.post(isVideo ? '/video_processing' : '/image_processing', fd);
-      onResult(res.data);
+      if (isVideo) {
+        onResult(await uploadAndProcessVideo(file, file.name, pos, setUploadProgress));
+      } else {
+        const fd = new FormData();
+        fd.append('file', file);
+        if (pos) {
+          fd.append('latitude', pos.coords.latitude);
+          fd.append('longitude', pos.coords.longitude);
+        }
+        const res = await api.post('/image_processing', fd);
+        onResult(res.data);
+      }
     } catch (err) {
-      onResult({ error: err.response?.data?.detail || 'Detection failed' });
+      onResult({ error: err.response?.data?.detail || err.message || 'Detection failed' });
     } finally {
       setLoading(false);
     }
@@ -212,7 +258,11 @@ function FileUpload({ onResult }) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              {isVideo ? 'Processing video...' : 'Analyzing image...'}
+              {isVideo
+                ? uploadProgress < 100
+                  ? `Uploading video... ${uploadProgress}%`
+                  : 'Analyzing video...'
+                : 'Analyzing image...'}
             </>
           ) : (
             <>
@@ -282,17 +332,10 @@ function WebcamRecorder({ onResult }) {
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
       }).catch(() => null);
 
-      const fd = new FormData();
-      fd.append('file', blob, 'recording.webm');
-      if (pos) {
-        fd.append('latitude', pos.coords.latitude);
-        fd.append('longitude', pos.coords.longitude);
-      }
-
-      const res = await api.post('/video_processing', fd);
-      onResult(res.data);
+      const result = await uploadAndProcessVideo(blob, 'recording.webm', pos);
+      onResult(result);
     } catch (err) {
-      onResult({ error: err.response?.data?.detail || 'Video processing failed' });
+      onResult({ error: err.response?.data?.detail || err.message || 'Video processing failed' });
     } finally {
       setLoading(false);
     }
