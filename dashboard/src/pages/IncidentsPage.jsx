@@ -44,7 +44,6 @@ export default function IncidentsPage() {
   };
 
   const deleteIncident = async (id) => {
-    if (!confirm('Are you sure you want to delete this incident?')) return;
     try {
       await api.delete(`/incidents/${id}`);
       setToast({ message: 'Incident deleted', type: 'success' });
