@@ -1,37 +1,30 @@
 import cv2
-from app.models.yolo import get_model, get_class_names
+from app.models.roboflow import infer_frame
 from app.config import CONFIDENCE_THRESHOLD, VERIFY_FRAMES
 from app.schemas.incident import DetectionResult
 
 
 def detect_frame(frame):
-    model = get_model()
-    names = get_class_names()
-
-    results = model.predict(
-        source=frame,
-        conf=CONFIDENCE_THRESHOLD,
-        verbose=False,
-    )
+    predictions = infer_frame(frame)
 
     fire_detected = False
     smoke_detected = False
     fire_confidence = 0.0
     smoke_confidence = 0.0
 
-    if results and results[0].boxes is not None:
-        for box in results[0].boxes:
-            class_id = int(box.cls[0])
-            confidence = float(box.conf[0])
-            class_name = names[class_id].lower().strip()
+    for prediction in predictions:
+        confidence = float(prediction["confidence"])
+        if confidence < CONFIDENCE_THRESHOLD:
+            continue
 
-            if class_name == "fire":
-                fire_detected = True
-                fire_confidence = max(fire_confidence, confidence)
+        class_name = prediction["class"].lower().strip()
 
-            elif class_name == "smoke":
-                smoke_detected = True
-                smoke_confidence = max(smoke_confidence, confidence)
+        if class_name == "fire":
+            fire_detected = True
+            fire_confidence = max(fire_confidence, confidence)
+        elif class_name == "smoke":
+            smoke_detected = True
+            smoke_confidence = max(smoke_confidence, confidence)
 
     status = _get_status(fire_detected, smoke_detected)
 
@@ -43,17 +36,36 @@ def detect_frame(frame):
         status=status,
     )
 
-    return detection, results
+    return detection, predictions
 
 
-def annotate_frame(frame, detection: DetectionResult) -> any:
-    model = get_model()
-    results = model.predict(
-        source=frame,
-        conf=CONFIDENCE_THRESHOLD,
-        verbose=False,
-    )
-    annotated = results[0].plot()
+def annotate_frame(frame, predictions, detection: DetectionResult):
+    annotated = frame.copy()
+
+    for prediction in predictions:
+        confidence = float(prediction["confidence"])
+        if confidence < CONFIDENCE_THRESHOLD:
+            continue
+
+        x = float(prediction["x"])
+        y = float(prediction["y"])
+        width = float(prediction["width"])
+        height = float(prediction["height"])
+        x1 = int(x - width / 2)
+        y1 = int(y - height / 2)
+        x2 = int(x + width / 2)
+        y2 = int(y + height / 2)
+        label = f'{prediction["class"]} {confidence:.0%}'
+        cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        cv2.putText(
+            annotated,
+            label,
+            (x1, max(y1 - 8, 16)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (0, 0, 255),
+            2,
+        )
 
     color = (
         (0, 0, 255) if detection.fire_detected

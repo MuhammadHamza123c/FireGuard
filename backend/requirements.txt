@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-ultralytics
+inference-sdk
 opencv-python-headless
 numpy
 python-multipart

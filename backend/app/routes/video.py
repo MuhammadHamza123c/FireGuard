@@ -5,7 +5,7 @@ from typing import Optional
 
 from app.config import OUTPUT_DIR, FRAME_SKIP
 from app.core.deps import get_current_user
-from app.services.detection import detect_frame, FireVerifier
+from app.services.detection import detect_frame, annotate_frame, FireVerifier
 from app.services.location import resolve_location
 from app.services.supabase_storage import upload_file
 
@@ -70,16 +70,8 @@ async def video_processing(
 
         confirmed = verifier.update(detection, frame_number)
 
-        annotated_frame = results[0].plot()
+        annotated_frame = annotate_frame(frame, results, detection)
 
-        color = (
-            (0, 0, 255) if detection.fire_detected
-            else (0, 255, 255) if detection.smoke_detected
-            else (0, 255, 0)
-        )
-
-        cv2.putText(annotated_frame, detection.status, (20, 40),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
         cv2.putText(annotated_frame, f"Fire verification: {verifier.fire_count}/5", (20, 80),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 

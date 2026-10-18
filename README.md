@@ -1,11 +1,11 @@
 # FireGuard — AI-Powered Fire & Smoke Detection System
 
-Real-time fire and smoke detection powered by YOLO AI. Citizens report incidents, track active fires on an interactive satellite map, and help their communities stay safe.
+Real-time fire and smoke detection powered by Roboflow. Citizens report incidents, track active fires on an interactive satellite map, and help their communities stay safe.
 
 ## Features
 
 ### Detection
-- AI-powered fire & smoke detection using YOLO model
+- AI-powered fire & smoke detection using Roboflow
 - Image upload detection with confidence scores
 - Video upload detection with frame-by-frame analysis
 - Live webcam detection with 10-second capture
@@ -44,7 +44,7 @@ Real-time fire and smoke detection powered by YOLO AI. Citizens report incidents
 
 ### Backend
 - **Framework:** FastAPI (Python)
-- **AI Model:** YOLO (Ultralytics) for fire/smoke detection
+- **AI Model:** Roboflow Inference API for fire/smoke detection
 - **Database:** Supabase (PostgreSQL)
 - **Storage:** Supabase Storage (fire-media, fire-audio buckets)
 - **Auth:** Supabase Auth (JWT-based)
@@ -73,7 +73,7 @@ fire_checker/
 ├── backend/
 │   ├── app/
 │   │   ├── core/           # Auth middleware (deps.py)
-│   │   ├── models/         # YOLO model loader
+│   │   ├── models/         # Roboflow inference client
 │   │   ├── routes/         # API endpoints
 │   │   ├── schemas/        # Pydantic models
 │   │   └── services/       # Business logic
@@ -155,6 +155,7 @@ Frontend runs at `http://localhost:5173`
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_STORAGE_BUCKET=fire-media
+ROBOFLOW_API_KEY=your-roboflow-api-key
 ```
 
 ### Frontend (.env)
