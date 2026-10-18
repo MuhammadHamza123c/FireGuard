@@ -58,7 +58,7 @@ app.include_router(notifications.router)
 @app.on_event("startup")
 def initialize_roboflow():
     get_client()
-    print("Roboflow inference client ready")
+    print("Roboflow API client ready")
 
 
 @app.get("/")
