@@ -19,11 +19,14 @@ export default function useLiveAlerts() {
       reconnectTimer.current = null;
     }
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-    const wsBase = baseUrl.replace(/^http/, 'ws');
-    const WS_URL = `${wsBase}/ws/live-alerts`;
+    const apiUrl = new URL(
+      import.meta.env.VITE_API_BASE_URL || '/api',
+      window.location.origin,
+    );
+    apiUrl.protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+    apiUrl.pathname = `${apiUrl.pathname.replace(/\/$/, '')}/ws/live-alerts`;
 
-    const ws = new WebSocket(WS_URL);
+    const ws = new WebSocket(apiUrl.toString());
     wsRef.current = ws;
 
     ws.onopen = () => {

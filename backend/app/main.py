@@ -1,14 +1,38 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app.routes import image, video, auth, alert, route, incidents, profile, live_alerts, weather, fire_spread, notifications
 from app.models.roboflow import get_client
+
+
+class StripApiPrefixMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> None:
+        if scope["type"] in ("http", "websocket"):
+            path = scope["path"]
+            if path == "/api" or path.startswith("/api/"):
+                scope = dict(scope)
+                scope["path"] = path[4:] or "/"
+                raw_path = scope.get("raw_path", b"")
+                if raw_path == b"/api":
+                    scope["raw_path"] = b"/"
+                elif raw_path.startswith(b"/api/"):
+                    scope["raw_path"] = raw_path[4:]
+        await self.app(scope, receive, send)
+
 
 app = FastAPI(
     title="Fire & Smoke Detection API",
     description="Roboflow-based Fire and Smoke Detection System",
     version="3.0.0",
 )
+
+app.add_middleware(StripApiPrefixMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

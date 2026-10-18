@@ -149,7 +149,26 @@ Frontend runs at `http://localhost:5173`
 
 ## Environment Variables
 
-### Backend (.env)
+### Vercel deployment
+
+The root `vercel.json` deploys `backend` and `dashboard` as services in one Vercel project. The backend is public under `/api/*`; the dashboard serves all other paths. The backend strips the `/api` prefix before routing requests.
+
+1. Push the deployment configuration to GitHub and import the repository's root (`./`) in Vercel as a multi-service project.
+2. Add these environment variables in Vercel for Production and Preview:
+
+```
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_STORAGE_BUCKET=fire-media
+ROBOFLOW_API_KEY=your-roboflow-api-key
+VITE_API_BASE_URL=/api
+```
+
+Use the exact Project URL from Supabase **Project Settings → API**. Never put secret values in source code or expose backend secrets as `VITE_` variables. Redeploy after saving environment variables.
+
+### Local development
+
+#### Backend (.env)
 
 ```
 SUPABASE_URL=https://your-project.supabase.co
@@ -158,7 +177,7 @@ SUPABASE_STORAGE_BUCKET=fire-media
 ROBOFLOW_API_KEY=your-roboflow-api-key
 ```
 
-### Frontend (.env)
+#### Frontend (.env)
 
 ```
 VITE_API_BASE_URL=http://localhost:8000
