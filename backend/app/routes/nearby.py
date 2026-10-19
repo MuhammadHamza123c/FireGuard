@@ -5,17 +5,13 @@ from typing import Optional
 
 router = APIRouter()
 
-OVERPASS_ENDPOINTS = [
-    "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
-    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-]
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 
 NEARBY_AMENITIES = {
-    "hospital": 'amenity="hospital"',
-    "fire_station": 'amenity="fire_station"',
-    "police": 'amenity="police"',
-    "pharmacy": 'amenity="pharmacy"',
+    "hospital": "hospital",
+    "fire_station": "fire_station",
+    "police": "police",
+    "pharmacy": "pharmacy",
 }
 
 
@@ -31,23 +27,40 @@ async def get_nearby_places(req: NearbyRequest):
         raise HTTPException(status_code=400, detail="Invalid type")
 
     delta = 0.08
-    bbox = f"{req.latitude - delta},{req.longitude - delta},{req.latitude + delta},{req.longitude + delta}"
-    amenity_filter = NEARBY_AMENITIES[req.type]
-    query = f'[out:json][timeout:15];(node[{amenity_filter}]({bbox});way[{amenity_filter}]({bbox}););out center 10;'
+    # Nominatim viewbox: left,top,right,bottom (lon,lat,lon,lat)
+    viewbox = f"{req.longitude - delta},{req.latitude - delta},{req.longitude + delta},{req.latitude + delta}"
 
-    for endpoint in OVERPASS_ENDPOINTS:
-        try:
-            async with httpx.AsyncClient(timeout=12) as client:
-                resp = await client.post(
-                    endpoint,
-                    content=f"data={query}",
-                    headers={"Content-Type": "application/x-www-form-urlencoded"},
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    if data.get("elements"):
-                        return data
-        except Exception:
-            continue
+    params = {
+        "format": "json",
+        "amenity": NEARBY_AMENITIES[req.type],
+        "bounded": "1",
+        "viewbox": viewbox,
+        "limit": "10",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                NOMINATIM_URL,
+                params=params,
+                headers={"User-Agent": "FireGuard/1.0"},
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                elements = []
+                for item in data:
+                    name = item.get("display_name", "").split(",")[0].strip()
+                    elements.append({
+                        "id": item.get("place_id", 0),
+                        "lat": float(item.get("lat", 0)),
+                        "lon": float(item.get("lon", 0)),
+                        "tags": {
+                            "name": name,
+                            "amenity": NEARBY_AMENITIES[req.type],
+                        },
+                    })
+                return {"elements": elements}
+    except Exception:
+        pass
 
     return {"elements": []}
