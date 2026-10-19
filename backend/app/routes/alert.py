@@ -8,6 +8,7 @@ from app.services.supabase_storage import upload_file, upload_audio_file
 from app.services.location import resolve_location
 from app.routes.live_alerts import broadcast_fire_alert
 from app.services.push_notify import send_fire_alert
+from app.services.routing import haversine
 
 router = APIRouter()
 
@@ -60,9 +61,25 @@ async def fire_alert(
         await broadcast_fire_alert(record)
 
         try:
-            tokens = await get_all_push_tokens()
-            if tokens:
-                result = send_fire_alert(tokens, record)
+            all_tokens = await get_all_push_tokens()
+            # Filter: only send to users within 5km of the fire
+            fire_lat = location["latitude"]
+            fire_lng = location["longitude"]
+            nearby_tokens = []
+            if fire_lat is not None and fire_lng is not None:
+                for t in all_tokens:
+                    t_lat = t.get("latitude")
+                    t_lng = t.get("longitude")
+                    if t_lat is not None and t_lng is not None:
+                        dist = haversine(fire_lat, fire_lng, t_lat, t_lng)
+                        if dist <= 5000:
+                            nearby_tokens.append(t["fcm_token"])
+            else:
+                # If fire location unknown, send to all
+                nearby_tokens = [t["fcm_token"] for t in all_tokens]
+
+            if nearby_tokens:
+                result = send_fire_alert(nearby_tokens, record)
                 for failed_token in result.get("failed", []):
                     await delete_token_by_value(failed_token)
         except Exception:

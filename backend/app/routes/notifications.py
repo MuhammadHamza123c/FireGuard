@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from typing import Optional
 
 from app.core.deps import get_current_user
 from app.services.supabase_db import (
@@ -13,6 +14,8 @@ router = APIRouter()
 
 class SubscribeRequest(BaseModel):
     fcm_token: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class UnsubscribeRequest(BaseModel):
@@ -25,7 +28,7 @@ async def subscribe_notifications(
     user: dict = Depends(get_current_user),
 ):
     try:
-        await save_push_token(user["id"], req.fcm_token)
+        await save_push_token(user["id"], req.fcm_token, req.latitude, req.longitude)
         return {"success": True, "message": "Push notifications enabled"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

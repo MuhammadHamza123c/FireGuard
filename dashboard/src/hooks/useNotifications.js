@@ -73,7 +73,24 @@ export default function useNotifications() {
       if (currentToken) {
         console.log('[Notifications] Token:', currentToken.substring(0, 30) + '...');
         setToken(currentToken);
-        await api.post('/notifications/subscribe', { fcm_token: currentToken });
+
+        let latitude = null;
+        let longitude = null;
+        try {
+          const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+          latitude = pos.coords.latitude;
+          longitude = pos.coords.longitude;
+        } catch {
+          console.warn('[Notifications] Could not get location');
+        }
+
+        await api.post('/notifications/subscribe', {
+          fcm_token: currentToken,
+          latitude,
+          longitude,
+        });
         console.log('[Notifications] Saved to backend');
       } else {
         console.warn('[Notifications] No token received');

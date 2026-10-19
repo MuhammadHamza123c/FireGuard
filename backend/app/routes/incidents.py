@@ -42,6 +42,12 @@ async def get_incident(
         if not incident:
             raise HTTPException(status_code=404, detail="Incident not found")
 
+        if incident.get("user_id") != user["id"]:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only view your own incidents",
+            )
+
         return {
             "success": True,
             "incident": incident,
@@ -77,7 +83,13 @@ async def update_status(
                 detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}",
             )
 
-        updated = await update_incident(incident_id, {"status": req.status})
+        updated = await update_incident(incident_id, user["id"], {"status": req.status})
+        if not updated:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only update your own incidents",
+            )
+
         profile = await recalculate_points(user["id"])
 
         return {
@@ -108,7 +120,13 @@ async def remove_incident(
                 detail="You can only delete your own incidents",
             )
 
-        await delete_incident(incident_id)
+        deleted = await delete_incident(incident_id, user["id"])
+        if not deleted:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only delete your own incidents",
+            )
+
         profile = await recalculate_points(user["id"])
 
         return {

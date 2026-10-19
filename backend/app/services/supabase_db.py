@@ -82,34 +82,52 @@ async def get_incident_by_id(incident_id: str) -> dict | None:
         return records[0] if records else None
 
 
-async def update_incident(incident_id: str, data: dict) -> dict | None:
+async def update_incident(incident_id: str, user_id: str, data: dict) -> dict | None:
     async with httpx.AsyncClient(timeout=30.0) as client:
         res = await client.patch(
             f"{SUPABASE_URL}/rest/v1/fire_detections"
-            f"?id=eq.{incident_id}",
+            f"?id=eq.{incident_id}&user_id=eq.{user_id}",
             json=data,
             headers=DB_HEADERS,
         )
 
-        if res.status_code != 200:
+        if res.status_code not in (200, 204):
             raise Exception(f"DB update failed: {res.text}")
+
+        if res.status_code == 204 or not res.text:
+            return None
 
         records = res.json()
         return records[0] if records else None
 
 
-async def delete_incident(incident_id: str) -> bool:
+async def delete_incident(incident_id: str, user_id: str) -> bool:
     async with httpx.AsyncClient(timeout=30.0) as client:
         res = await client.delete(
             f"{SUPABASE_URL}/rest/v1/fire_detections"
-            f"?id=eq.{incident_id}",
+            f"?id=eq.{incident_id}&user_id=eq.{user_id}",
             headers=DB_HEADERS,
         )
 
-        if res.status_code != 200:
+        if res.status_code not in (200, 204):
             raise Exception(f"DB delete failed: {res.text}")
 
-        return True
+        if res.status_code == 204:
+            # If we got 204, we can't tell if rows were deleted.
+            # Re-check by trying to fetch the incident.
+            try:
+                check = await client.get(
+                    f"{SUPABASE_URL}/rest/v1/fire_detections"
+                    f"?id=eq.{incident_id}&user_id=eq.{user_id}&select=id",
+                    headers=DB_HEADERS,
+                )
+                if check.status_code == 200:
+                    return not bool(check.json())
+                return True
+            except Exception:
+                return True
+
+        return bool(res.json())
 
 
 # ─── User Profiles ───────────────────────────────────────────────
@@ -223,13 +241,21 @@ async def get_all_push_tokens() -> list:
     async with httpx.AsyncClient(timeout=30.0) as client:
         res = await client.get(
             f"{SUPABASE_URL}/rest/v1/push_tokens"
-            "?select=fcm_token",
+            "?select=fcm_token,latitude,longitude",
             headers=DB_HEADERS,
         )
         if res.status_code != 200:
             return []
         records = res.json()
-        return [r["fcm_token"] for r in records if r.get("fcm_token")]
+        return [
+            {
+                "fcm_token": r["fcm_token"],
+                "latitude": r.get("latitude"),
+                "longitude": r.get("longitude"),
+            }
+            for r in records
+            if r.get("fcm_token")
+        ]
 
 
 async def get_user_push_tokens(user_id: str) -> list:
@@ -245,7 +271,7 @@ async def get_user_push_tokens(user_id: str) -> list:
         return [r["fcm_token"] for r in records if r.get("fcm_token")]
 
 
-async def save_push_token(user_id: str, fcm_token: str) -> dict:
+async def save_push_token(user_id: str, fcm_token: str, latitude: float = None, longitude: float = None) -> dict:
     async with httpx.AsyncClient(timeout=30.0) as client:
         existing = await client.get(
             f"{SUPABASE_URL}/rest/v1/push_tokens"
@@ -253,11 +279,24 @@ async def save_push_token(user_id: str, fcm_token: str) -> dict:
             headers=DB_HEADERS,
         )
         if existing.status_code == 200 and existing.json():
+            # Update location if provided
+            if latitude is not None and longitude is not None:
+                await client.patch(
+                    f"{SUPABASE_URL}/rest/v1/push_tokens"
+                    f"?user_id=eq.{user_id}&fcm_token=eq.{fcm_token}",
+                    json={"latitude": latitude, "longitude": longitude},
+                    headers=DB_HEADERS,
+                )
             return {"id": existing.json()[0]["id"]}
+
+        payload = {"user_id": user_id, "fcm_token": fcm_token}
+        if latitude is not None and longitude is not None:
+            payload["latitude"] = latitude
+            payload["longitude"] = longitude
 
         res = await client.post(
             f"{SUPABASE_URL}/rest/v1/push_tokens",
-            json={"user_id": user_id, "fcm_token": fcm_token},
+            json=payload,
             headers=DB_HEADERS,
         )
         if res.status_code not in (200, 201):
