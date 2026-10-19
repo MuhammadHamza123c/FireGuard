@@ -590,39 +590,20 @@ export default function MapPage() {
   const clearNearbyRoute = () => { setNearbyRouteCoords([]); setNearbyRouteInfo(null); setShowWeather(false); };
   const clearAllRoutes = () => { setRouteCoords([]); setSelectedRoute([]); setSafeRouteCoords([]); setNearbyRouteCoords([]); setNearbyRouteInfo(null); setShowWeather(false); };
 
-  const OVERPASS_ENDPOINTS = [
-    'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter',
-    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-  ];
-
   const fetchNearby = async (type) => {
     if (!userPos) return;
     setNearbyLoading(true);
     setActiveNearby(type);
     try {
       const [lat, lng] = userPos;
-      const delta = 0.08;
-      const bbox = `${lat - delta},${lng - delta},${lat + delta},${lng + delta}`;
-      const query = `[out:json][timeout:15];(node["amenity"="${type}"](${bbox});way["amenity"="${type}"](${bbox}););out center 10;`;
-      const body = `data=${encodeURIComponent(query)}`;
 
-      let data = null;
-      for (const endpoint of OVERPASS_ENDPOINTS) {
-        try {
-          const res = await fetch(endpoint, {
-            method: 'POST',
-            body,
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            signal: AbortSignal.timeout(10000),
-          });
-          if (res.ok) {
-            data = await res.json();
-            if (data.elements?.length) break;
-          }
-        } catch { continue; }
-      }
+      const res = await api.post('/nearby_places', {
+        latitude: lat,
+        longitude: lng,
+        type,
+      });
 
+      const data = res.data;
       const tag = NEARBY_TAGS.find((t) => t.key === type);
 
       if (!data || !data.elements?.length) {
