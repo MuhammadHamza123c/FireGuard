@@ -36,13 +36,14 @@ function getGreeting() {
 }
 
 export default function DashboardPage() {
-  const { profile, user } = useAuth();
+  const { profile, user, fetchProfile } = useAuth();
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const { enabled: notificationsEnabled, toggle: toggleNotifications } = useNotifications();
 
   useEffect(() => {
     fetchIncidents();
+    fetchProfile();
   }, []);
 
   const fetchIncidents = async () => {

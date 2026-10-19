@@ -6,7 +6,7 @@ import { generateIncidentPDF } from '../utils/generateIncidentPDF';
 import api from '../api/axios';
 
 export default function IncidentsPage() {
-  const { fetchProfile } = useAuth();
+  const { fetchProfile, setProfile } = useAuth();
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
@@ -32,7 +32,11 @@ export default function IncidentsPage() {
   const updateStatus = async (id, status) => {
     setUpdating(id);
     try {
-      await api.put(`/incidents/${id}`, { status });
+      const res = await api.put(`/incidents/${id}`, { status });
+      if (res.data?.profile) {
+        setProfile(res.data.profile);
+        localStorage.setItem('profile', JSON.stringify(res.data.profile));
+      }
       setToast({ message: `Status updated to ${status}`, type: 'success' });
       fetchIncidents();
       fetchProfile();
@@ -45,7 +49,11 @@ export default function IncidentsPage() {
 
   const deleteIncident = async (id) => {
     try {
-      await api.delete(`/incidents/${id}`);
+      const res = await api.delete(`/incidents/${id}`);
+      if (res.data?.profile) {
+        setProfile(res.data.profile);
+        localStorage.setItem('profile', JSON.stringify(res.data.profile));
+      }
       setToast({ message: 'Incident deleted', type: 'success' });
     } catch {
       // silent — incident may already be gone
