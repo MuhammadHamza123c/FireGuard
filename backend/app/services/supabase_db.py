@@ -84,6 +84,15 @@ async def get_incident_by_id(incident_id: str) -> dict | None:
 
 async def update_incident(incident_id: str, user_id: str, data: dict) -> dict | None:
     async with httpx.AsyncClient(timeout=30.0) as client:
+        # First verify the incident exists and belongs to user
+        check = await client.get(
+            f"{SUPABASE_URL}/rest/v1/fire_detections"
+            f"?id=eq.{incident_id}&user_id=eq.{user_id}&select=id",
+            headers=DB_HEADERS,
+        )
+        if check.status_code != 200 or not check.json():
+            return None  # Incident doesn't exist or doesn't belong to user
+
         res = await client.patch(
             f"{SUPABASE_URL}/rest/v1/fire_detections"
             f"?id=eq.{incident_id}&user_id=eq.{user_id}",
@@ -95,6 +104,14 @@ async def update_incident(incident_id: str, user_id: str, data: dict) -> dict | 
             raise Exception(f"DB update failed: {res.text}")
 
         if res.status_code == 204 or not res.text:
+            # Re-fetch to get updated record
+            verify = await client.get(
+                f"{SUPABASE_URL}/rest/v1/fire_detections"
+                f"?id=eq.{incident_id}&select=*",
+                headers=DB_HEADERS,
+            )
+            if verify.status_code == 200 and verify.json():
+                return verify.json()[0]
             return None
 
         records = res.json()
@@ -103,6 +120,16 @@ async def update_incident(incident_id: str, user_id: str, data: dict) -> dict | 
 
 async def delete_incident(incident_id: str, user_id: str) -> bool:
     async with httpx.AsyncClient(timeout=30.0) as client:
+        # First verify the incident exists and belongs to user
+        check = await client.get(
+            f"{SUPABASE_URL}/rest/v1/fire_detections"
+            f"?id=eq.{incident_id}&user_id=eq.{user_id}&select=id",
+            headers=DB_HEADERS,
+        )
+        if check.status_code != 200 or not check.json():
+            return False  # Incident doesn't exist or doesn't belong to user
+
+        # Delete the incident
         res = await client.delete(
             f"{SUPABASE_URL}/rest/v1/fire_detections"
             f"?id=eq.{incident_id}&user_id=eq.{user_id}",
@@ -112,22 +139,15 @@ async def delete_incident(incident_id: str, user_id: str) -> bool:
         if res.status_code not in (200, 204):
             raise Exception(f"DB delete failed: {res.text}")
 
-        if res.status_code == 204:
-            # If we got 204, we can't tell if rows were deleted.
-            # Re-check by trying to fetch the incident.
-            try:
-                check = await client.get(
-                    f"{SUPABASE_URL}/rest/v1/fire_detections"
-                    f"?id=eq.{incident_id}&user_id=eq.{user_id}&select=id",
-                    headers=DB_HEADERS,
-                )
-                if check.status_code == 200:
-                    return not bool(check.json())
-                return True
-            except Exception:
-                return True
-
-        return bool(res.json())
+        # Verify deletion
+        verify = await client.get(
+            f"{SUPABASE_URL}/rest/v1/fire_detections"
+            f"?id=eq.{incident_id}&select=id",
+            headers=DB_HEADERS,
+        )
+        if verify.status_code == 200:
+            return not bool(verify.json())  # True if deleted (empty result)
+        return True  # Assume deleted if can't verify
 
 
 # ─── User Profiles ───────────────────────────────────────────────
