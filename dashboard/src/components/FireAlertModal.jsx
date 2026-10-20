@@ -11,6 +11,7 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [searchingLocation, setSearchingLocation] = useState(false);
   const [userCoords, setUserCoords] = useState(null); // for bounding search to user's city
+  const [userCity, setUserCity] = useState(null); // user's current city name
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -38,7 +39,21 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
     // Get user's current location on mount to bound manual search
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setUserCoords({ lat, lng });
+          // Reverse geocode to get user's city
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+              { headers: { 'User-Agent': 'FireGuard/1.0' } }
+            );
+            const data = await res.json();
+            const city = data?.address?.city || data?.address?.town || data?.address?.village || data?.address?.county || null;
+            if (city) setUserCity(city);
+          } catch {}
+        },
         () => {}
       );
     }
@@ -115,7 +130,7 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
       setSearchingLocation(true);
       try {
         // Photon API - faster autocomplete, better results
-        let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(locationQuery)}&limit=5`;
+        let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(locationQuery)}&limit=8`;
         if (userCoords) {
           url += `&lat=${userCoords.lat}&lon=${userCoords.lng}`;
         }
@@ -123,7 +138,7 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
         const data = await res.json();
         const features = data?.features || [];
         // Convert Photon format to Nominatim-like format
-        const suggestions = features.map((f) => {
+        let suggestions = features.map((f) => {
           const props = f.properties || {};
           const name = [props.name, props.street, props.city || props.town || props.village, props.state, props.country]
             .filter(Boolean)
@@ -132,8 +147,18 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
             display_name: name || props.name || 'Unknown',
             lat: f.geometry?.coordinates?.[1],
             lon: f.geometry?.coordinates?.[0],
+            city: props.city || props.town || props.village || null,
           };
         });
+        // Filter to only show results from user's current city
+        if (userCity) {
+          const cityLower = userCity.toLowerCase();
+          suggestions = suggestions.filter((s) => {
+            if (!s.city) return false; // exclude if no city info
+            const sCity = s.city.toLowerCase();
+            return sCity === cityLower || sCity.includes(cityLower) || cityLower.includes(sCity);
+          });
+        }
         setLocationSuggestions(suggestions);
       } catch {
         // Fallback to Nominatim if Photon fails
@@ -455,6 +480,11 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
                           {s.display_name}
                         </button>
                       ))}
+                    </div>
+                  )}
+                  {!searchingLocation && locationQuery.trim().length >= 3 && locationSuggestions.length === 0 && !selectedLocation && (
+                    <div className="absolute z-50 w-full mt-1 rounded-xl border border-gray-700 bg-gray-900/95 backdrop-blur-xl shadow-xl px-4 py-3 text-xs text-gray-500">
+                      No places found in {userCity || 'your area'}
                     </div>
                   )}
                   {selectedLocation && (
