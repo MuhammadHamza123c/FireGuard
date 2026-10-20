@@ -125,7 +125,7 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
 
   // Debounced location search
   useEffect(() => {
-    if (locationMode !== 'manual' || locationQuery.trim().length < 3) {
+    if (locationMode !== 'manual' || locationQuery.trim().length < 2) {
       setLocationSuggestions([]);
       return;
     }
@@ -179,7 +179,7 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
       } finally {
         setSearchingLocation(false);
       }
-    }, 300);
+    }, 200);
     return () => clearTimeout(timer);
   }, [locationQuery, locationMode]);
 
