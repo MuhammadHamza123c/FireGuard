@@ -5,6 +5,11 @@ import { useAuth } from '../context/AuthContext';
 export default function FireAlertModal({ result, onClose, onSaved }) {
   const { fetchProfile } = useAuth();
   const [message, setMessage] = useState('');
+  const [locationMode, setLocationMode] = useState('current'); // 'current' or 'manual'
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [searchingLocation, setSearchingLocation] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -92,14 +97,57 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
 
   const canSave = message.trim() || audioBlob;
 
+  // Debounced location search
+  useEffect(() => {
+    if (locationMode !== 'manual' || locationQuery.trim().length < 3) {
+      setLocationSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearchingLocation(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationQuery)}&limit=5`,
+          { headers: { 'User-Agent': 'FireGuard/1.0' } }
+        );
+        const data = await res.json();
+        setLocationSuggestions(Array.isArray(data) ? data : []);
+      } catch {
+        setLocationSuggestions([]);
+      } finally {
+        setSearchingLocation(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [locationQuery, locationMode]);
+
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
 
     try {
-      const pos = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-      }).catch(() => null);
+      let lat = result.latitude || null;
+      let lng = result.longitude || null;
+      let city = result.city || null;
+      let region = result.region || null;
+      let country = result.country || null;
+
+      if (locationMode === 'manual' && selectedLocation) {
+        lat = parseFloat(selectedLocation.lat);
+        lng = parseFloat(selectedLocation.lon);
+        const parts = (selectedLocation.display_name || '').split(',').map((s) => s.trim());
+        city = parts[0] || city;
+        region = parts[1] || region;
+        country = parts[parts.length - 1] || country;
+      } else if (locationMode === 'current') {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+        }).catch(() => null);
+        if (pos) {
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        }
+      }
 
       let finalAudioUrl = null;
       if (audioBlob) {
@@ -113,11 +161,11 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
         incident_type: result.incident_type || result.status || 'FIRE DETECTED',
         fire_confidence: result.fire_confidence || 0,
         smoke_confidence: result.smoke_confidence || 0,
-        latitude: pos?.coords.latitude || result.latitude || null,
-        longitude: pos?.coords.longitude || result.longitude || null,
-        city: result.city || null,
-        region: result.region || null,
-        country: result.country || null,
+        latitude: lat,
+        longitude: lng,
+        city,
+        region,
+        country,
         source: result.frames_processed ? 'video' : 'image',
         file_url: result.file_url || result.output_video || null,
         audio_url: finalAudioUrl,
@@ -311,6 +359,70 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
                     </div>
                     <span className="text-[10px] font-mono text-gray-500 shrink-0">{formatTime(recordTime)}</span>
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* Location Mode */}
+            <div className="mb-4">
+              <label className="block text-sm text-gray-400 mb-2">Report Location</label>
+              <div className="flex gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => { setLocationMode('current'); setSelectedLocation(null); setLocationQuery(''); setLocationSuggestions([]); }}
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all border ${locationMode === 'current' ? 'bg-red-500/20 border-red-500/40 text-red-300' : 'bg-gray-800/50 border-gray-700/50 text-gray-400 hover:text-white'}`}
+                >
+                  📍 Current Location
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocationMode('manual')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all border ${locationMode === 'manual' ? 'bg-red-500/20 border-red-500/40 text-red-300' : 'bg-gray-800/50 border-gray-700/50 text-gray-400 hover:text-white'}`}
+                >
+                  🔍 Search Location
+                </button>
+              </div>
+
+              {locationMode === 'manual' && (
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={locationQuery}
+                    onChange={(e) => { setLocationQuery(e.target.value); setSelectedLocation(null); }}
+                    placeholder="Type city, area, or address..."
+                    className="w-full rounded-xl border border-gray-700 bg-gray-900/70 px-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:border-red-500/60 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all"
+                  />
+                  {searchingLocation && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+                  {locationSuggestions.length > 0 && !selectedLocation && (
+                    <div className="absolute z-50 w-full mt-1 rounded-xl border border-gray-700 bg-gray-900/95 backdrop-blur-xl shadow-xl max-h-48 overflow-y-auto">
+                      {locationSuggestions.map((s, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => {
+                            setSelectedLocation(s);
+                            setLocationQuery(s.display_name);
+                            setLocationSuggestions([]);
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-xs text-gray-300 hover:bg-white/10 transition-colors border-b border-gray-800/50 last:border-0"
+                        >
+                          {s.display_name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {selectedLocation && (
+                    <div className="mt-2 text-[10px] text-emerald-400 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Location selected
+                    </div>
+                  )}
                 </div>
               )}
             </div>
