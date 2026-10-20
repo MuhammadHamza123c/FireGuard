@@ -134,122 +134,52 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
       try {
         const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
         const opencageKey = import.meta.env.VITE_OPENCAGE_KEY || '';
-        if (mapboxToken) {
-          // Mapbox Geocoding API - best autocomplete
-          let searchQuery = locationQuery;
-          if (userCity && !locationQuery.toLowerCase().includes(userCity.toLowerCase())) {
-            searchQuery = `${locationQuery} ${userCity}`;
-          }
-          let url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${mapboxToken}&limit=6&autocomplete=true`;
-          if (userCoords) {
-            url += `&proximity=${userCoords.lng},${userCoords.lat}`;
-          }
-          const res = await fetch(url);
-          const data = await res.json();
-          const features = data?.features || [];
-          let suggestions = features.map((f) => {
-            const ctx = f.context || [];
-            const city = ctx.find((c) => c.id?.startsWith('place'))?.text || null;
-            return {
-              display_name: f.place_name || f.text || 'Unknown',
-              lat: f.center?.[1],
-              lon: f.center?.[0],
-              city: city,
-            };
-          });
-          // Filter to user's city if known
-          if (userCity) {
-            const cityLower = userCity.toLowerCase();
-            const filtered = suggestions.filter((s) => {
-              if (!s.city) return false;
-              const sCity = s.city.toLowerCase();
-              return sCity === cityLower || sCity.includes(cityLower) || cityLower.includes(sCity);
-            });
-            // Strict: only user's city, no fallback
-            suggestions = filtered.length > 0 ? filtered : [];
-          }
-          setLocationSuggestions(suggestions);
-        } else if (opencageKey) {
-          // OpenCage Geocoding API
-          // Append user's city to query for better local results
-          let searchQuery = locationQuery;
-          if (userCity && !locationQuery.toLowerCase().includes(userCity.toLowerCase())) {
-            searchQuery = `${locationQuery} ${userCity}`;
-          }
-          let url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(searchQuery)}&key=${opencageKey}&limit=6&no_annotations=1`;
-          if (userCountry) {
-            url += `&countrycode=${userCountry}`;
-          }
-          if (userCoords) {
-            url += `&proximity=${userCoords.lat},${userCoords.lng}`;
-          }
-          const res = await fetch(url);
-          const data = await res.json();
-          const results = data?.results || [];
-          let suggestions = results.map((r) => {
-            const comp = r.components || {};
-            const city = comp.city || comp.town || comp.village || comp.county || null;
-            return {
-              display_name: r.formatted || 'Unknown',
-              lat: r.geometry?.lat,
-              lon: r.geometry?.lng,
-              city: city,
-            };
-          });
-          // Filter to user's city if known
-          if (userCity) {
-            const cityLower = userCity.toLowerCase();
-            const filtered = suggestions.filter((s) => {
-              if (!s.city) return false;
-              const sCity = s.city.toLowerCase();
-              return sCity === cityLower || sCity.includes(cityLower) || cityLower.includes(sCity);
-            });
-            // Strict: only user's city, no fallback
-            suggestions = filtered.length > 0 ? filtered : [];
-          }
-          setLocationSuggestions(suggestions);
-        } else {
-          let searchQuery = locationQuery;
-          if (userCity && !locationQuery.toLowerCase().includes(userCity.toLowerCase())) {
-            searchQuery = `${locationQuery} ${userCity}`;
-          }
-          let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchQuery)}&limit=8`;
-          if (userCoords) {
-            url += `&lat=${userCoords.lat}&lon=${userCoords.lng}`;
-          }
-          const res = await fetch(url);
-          const data = await res.json();
-          const features = data?.features || [];
-          let suggestions = features.map((f) => {
-            const props = f.properties || {};
-            const name = [props.name, props.street, props.city || props.town || props.village, props.state, props.country]
-              .filter(Boolean)
-              .join(', ');
-            return {
-              display_name: name || props.name || 'Unknown',
-              lat: f.geometry?.coordinates?.[1],
-              lon: f.geometry?.coordinates?.[0],
-              city: props.city || props.town || props.village || null,
-            };
-          });
-          if (userCity) {
-            const cityLower = userCity.toLowerCase();
-            const filtered = suggestions.filter((s) => {
-              if (!s.city) return false;
-              const sCity = s.city.toLowerCase();
-              return sCity === cityLower || sCity.includes(cityLower) || cityLower.includes(sCity);
-            });
-            // Strict: only user's city, no fallback
-            suggestions = filtered.length > 0 ? filtered : [];
-          }
-          setLocationSuggestions(suggestions);
+
+        // Use Nominatim with viewbox for reliable city-specific results
+        // (OpenCage and Photon return worldwide results that are hard to filter)
+        let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationQuery)}&limit=10&addressdetails=1`;
+        if (userCoords) {
+          const d = 0.15;
+          const viewbox = `${userCoords.lng - d},${userCoords.lat + d},${userCoords.lng + d},${userCoords.lat - d}`;
+          url += `&viewbox=${viewbox}&bounded=1`;
         }
+        if (userCountry) {
+          url += `&countrycodes=${userCountry}`;
+        }
+
+        const res = await fetch(url, { headers: { 'User-Agent': 'FireGuard/1.0' } });
+        const data = await res.json();
+        const results = Array.isArray(data) ? data : [];
+
+        let suggestions = results.map((r) => {
+          const addr = r.address || {};
+          const city = addr.city || addr.town || addr.village || addr.county || addr.state || null;
+          const name = r.display_name || '';
+          return {
+            display_name: name,
+            lat: parseFloat(r.lat),
+            lon: parseFloat(r.lon),
+            city: city,
+          };
+        });
+
+        // Filter to only show results from user's current city
+        if (userCity) {
+          const cityLower = userCity.toLowerCase();
+          suggestions = suggestions.filter((s) => {
+            if (!s.city) return false;
+            const sCity = s.city.toLowerCase();
+            return sCity === cityLower || sCity.includes(cityLower) || cityLower.includes(sCity);
+          });
+        }
+
+        setLocationSuggestions(suggestions);
       } catch {
         setLocationSuggestions([]);
       } finally {
         setSearchingLocation(false);
       }
-    }, 250);
+    }, 300);
     return () => clearTimeout(timer);
   }, [locationQuery, locationMode]);
 
