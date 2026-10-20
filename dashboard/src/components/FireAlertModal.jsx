@@ -12,6 +12,7 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
   const [searchingLocation, setSearchingLocation] = useState(false);
   const [userCoords, setUserCoords] = useState(null); // for bounding search to user's city
   const [userCity, setUserCity] = useState(null); // user's current city name
+  const [userCountry, setUserCountry] = useState(null); // user's current country code
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -51,7 +52,9 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
             );
             const data = await res.json();
             const city = data?.address?.city || data?.address?.town || data?.address?.village || data?.address?.county || null;
+            const countryCode = data?.address?.country_code || null;
             if (city) setUserCity(city);
+            if (countryCode) setUserCountry(countryCode);
           } catch {}
         },
         () => {}
@@ -133,7 +136,11 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
         const opencageKey = import.meta.env.VITE_OPENCAGE_KEY || '';
         if (mapboxToken) {
           // Mapbox Geocoding API - best autocomplete
-          let url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(locationQuery)}.json?access_token=${mapboxToken}&limit=6&autocomplete=true`;
+          let searchQuery = locationQuery;
+          if (userCity && !locationQuery.toLowerCase().includes(userCity.toLowerCase())) {
+            searchQuery = `${locationQuery} ${userCity}`;
+          }
+          let url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${mapboxToken}&limit=6&autocomplete=true`;
           if (userCoords) {
             url += `&proximity=${userCoords.lng},${userCoords.lat}`;
           }
@@ -164,7 +171,15 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
           setLocationSuggestions(suggestions);
         } else if (opencageKey) {
           // OpenCage Geocoding API
-          let url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(locationQuery)}&key=${opencageKey}&limit=6&no_annotations=1`;
+          // Append user's city to query for better local results
+          let searchQuery = locationQuery;
+          if (userCity && !locationQuery.toLowerCase().includes(userCity.toLowerCase())) {
+            searchQuery = `${locationQuery} ${userCity}`;
+          }
+          let url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(searchQuery)}&key=${opencageKey}&limit=6&no_annotations=1`;
+          if (userCountry) {
+            url += `&countrycode=${userCountry}`;
+          }
           if (userCoords) {
             url += `&proximity=${userCoords.lat},${userCoords.lng}`;
           }
@@ -194,7 +209,11 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
           }
           setLocationSuggestions(suggestions);
         } else {
-          let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(locationQuery)}&limit=8`;
+          let searchQuery = locationQuery;
+          if (userCity && !locationQuery.toLowerCase().includes(userCity.toLowerCase())) {
+            searchQuery = `${locationQuery} ${userCity}`;
+          }
+          let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchQuery)}&limit=8`;
           if (userCoords) {
             url += `&lat=${userCoords.lat}&lon=${userCoords.lng}`;
           }
