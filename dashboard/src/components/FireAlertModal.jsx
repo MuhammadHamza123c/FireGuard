@@ -114,22 +114,43 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
     const timer = setTimeout(async () => {
       setSearchingLocation(true);
       try {
-        let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationQuery)}&limit=5`;
-        // Bound search to user's city/area if location known
+        // Photon API - faster autocomplete, better results
+        let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(locationQuery)}&limit=5`;
         if (userCoords) {
-          const delta = 0.5; // ~50km radius
-          const viewbox = `${userCoords.lng - delta},${userCoords.lat - delta},${userCoords.lng + delta},${userCoords.lat + delta}`;
-          url += `&viewbox=${viewbox}&bounded=1`;
+          url += `&lat=${userCoords.lat}&lon=${userCoords.lng}`;
         }
-        const res = await fetch(url, { headers: { 'User-Agent': 'FireGuard/1.0' } });
+        const res = await fetch(url);
         const data = await res.json();
-        setLocationSuggestions(Array.isArray(data) ? data : []);
+        const features = data?.features || [];
+        // Convert Photon format to Nominatim-like format
+        const suggestions = features.map((f) => {
+          const props = f.properties || {};
+          const name = [props.name, props.street, props.city || props.town || props.village, props.state, props.country]
+            .filter(Boolean)
+            .join(', ');
+          return {
+            display_name: name || props.name || 'Unknown',
+            lat: f.geometry?.coordinates?.[1],
+            lon: f.geometry?.coordinates?.[0],
+          };
+        });
+        setLocationSuggestions(suggestions);
       } catch {
-        setLocationSuggestions([]);
+        // Fallback to Nominatim if Photon fails
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationQuery)}&limit=5`,
+            { headers: { 'User-Agent': 'FireGuard/1.0' } }
+          );
+          const data = await res.json();
+          setLocationSuggestions(Array.isArray(data) ? data : []);
+        } catch {
+          setLocationSuggestions([]);
+        }
       } finally {
         setSearchingLocation(false);
       }
-    }, 400);
+    }, 250);
     return () => clearTimeout(timer);
   }, [locationQuery, locationMode]);
 
