@@ -10,6 +10,7 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [searchingLocation, setSearchingLocation] = useState(false);
+  const [userCoords, setUserCoords] = useState(null); // for bounding search to user's city
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -34,6 +35,13 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
   })), []);
 
   useEffect(() => {
+    // Get user's current location on mount to bound manual search
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {}
+      );
+    }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (audioUrl) URL.revokeObjectURL(audioUrl);
@@ -106,10 +114,14 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
     const timer = setTimeout(async () => {
       setSearchingLocation(true);
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationQuery)}&limit=5`,
-          { headers: { 'User-Agent': 'FireGuard/1.0' } }
-        );
+        let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationQuery)}&limit=5`;
+        // Bound search to user's city/area if location known
+        if (userCoords) {
+          const delta = 0.5; // ~50km radius
+          const viewbox = `${userCoords.lng - delta},${userCoords.lat - delta},${userCoords.lng + delta},${userCoords.lat + delta}`;
+          url += `&viewbox=${viewbox}&bounded=1`;
+        }
+        const res = await fetch(url, { headers: { 'User-Agent': 'FireGuard/1.0' } });
         const data = await res.json();
         setLocationSuggestions(Array.isArray(data) ? data : []);
       } catch {
@@ -376,7 +388,16 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setLocationMode('manual')}
+                  onClick={() => {
+                    setLocationMode('manual');
+                    // Get user's current location to bound search to their city
+                    if (!userCoords) {
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                        () => {}
+                      );
+                    }
+                  }}
                   className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all border ${locationMode === 'manual' ? 'bg-red-500/20 border-red-500/40 text-red-300' : 'bg-gray-800/50 border-gray-700/50 text-gray-400 hover:text-white'}`}
                 >
                   🔍 Search Location
