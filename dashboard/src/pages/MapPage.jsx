@@ -57,6 +57,28 @@ function createNearbyIcon(color) {
   return L.divIcon({ html: svg, className: '', iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16] });
 }
 
+function createWindArrowIcon(speed, direction) {
+  // Wind direction is "from" direction. Arrow points to where wind blows (opposite)
+  const blowTo = (direction + 180) % 360;
+  const speedColor = speed > 30 ? '#ef4444' : speed > 15 ? '#f97316' : '#38bdf8';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+    <defs>
+      <filter id="wglow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <g transform="rotate(${blowTo}, 24, 24)" filter="url(#wglow)">
+      <line x1="24" y1="38" x2="24" y2="10" stroke="${speedColor}" stroke-width="2.5" stroke-linecap="round"/>
+      <polygon points="24,6 18,18 30,18" fill="${speedColor}" stroke="white" stroke-width="1"/>
+      <line x1="24" y1="38" x2="20" y2="32" stroke="${speedColor}" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="24" y1="38" x2="28" y2="32" stroke="${speedColor}" stroke-width="1.5" stroke-linecap="round"/>
+    </g>
+    <text x="24" y="46" text-anchor="middle" fill="${speedColor}" font-size="8" font-weight="bold" font-family="sans-serif">${Math.round(speed)} km/h</text>
+  </svg>`;
+  return L.divIcon({ html: svg, className: '', iconSize: [48, 52], iconAnchor: [24, 26], popupAnchor: [0, -28] });
+}
+
 function isVideoUrl(url) {
   if (!url) return false;
   return /\.(mp4|webm|ogg|mov|avi)(\?|$)/i.test(url);
@@ -180,6 +202,13 @@ const FireMap = memo(function FireMap({
       <TileLayer key={mapStyle} attribution={mapStyle === 'satellite' || mapStyle === 'terrain' ? '&copy; Esri' : '&copy; OSM'} url={MAP_TILES[mapStyle]} />
 
       <ZoomControls />
+      <button
+        onClick={() => setShowWindArrows((v) => !v)}
+        className={`absolute top-4 right-16 z-[1000] rounded-xl p-2 transition-all flex items-center justify-center border shadow-2xl backdrop-blur-xl ${showWindArrows ? 'bg-sky-500/20 border-sky-500/30 text-sky-400' : 'bg-gray-950/80 border-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
+        title={showWindArrows ? 'Hide wind arrows' : 'Show wind arrows'}
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.59 4.59A2 2 0 1111 8H2m10.59 11.41A2 2 0 1014 16H2m15.73-8.27A2.5 2.5 0 1119.5 12H2" /></svg>
+      </button>
 
       {userPos && (
         <Marker position={userPos} icon={userIcon}>
@@ -286,6 +315,21 @@ const FireMap = memo(function FireMap({
         </Marker>
       ))}
 
+      {showWindArrows && windArrows.map((w, i) => (
+        <Marker key={`wind-${i}`} position={[w.lat, w.lng]} icon={createWindArrowIcon(w.speed, w.direction)}>
+          <Popup>
+            <div className="text-sm min-w-[130px]">
+              <div className="font-semibold text-sky-400">Wind Data</div>
+              <div className="space-y-1 text-xs mt-1.5">
+                <div className="flex justify-between"><span className="text-gray-500">Speed</span><span className="text-white">{w.speed} km/h</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Direction</span><span className="text-white">{w.direction}°</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">Blowing to</span><span className="text-white">{(w.direction + 180) % 360}°</span></div>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
+      ))}
+
       {routeCoords.length > 0 && <Polyline positions={routeCoords} pathOptions={{ color: '#22c55e', weight: 5, opacity: 0.9, dashArray: '12, 8', lineCap: 'round' }} />}
       {nearbyRouteCoords.length > 0 && <Polyline positions={nearbyRouteCoords} pathOptions={{ color: '#3b82f6', weight: 5, opacity: 0.9, dashArray: '12, 8', lineCap: 'round' }} />}
       {selectedRoute.length > 0 && <Polyline positions={selectedRoute} pathOptions={{ color: '#facc15', weight: 6, opacity: 1, dashArray: '10, 8', lineCap: 'round' }} />}
@@ -365,6 +409,8 @@ export default function MapPage() {
   const [weather, setWeather] = useState(null);
   const [showWeather, setShowWeather] = useState(false);
   const [weatherCoords, setWeatherCoords] = useState(null);
+  const [windArrows, setWindArrows] = useState([]); // {lat, lng, speed, direction}[]
+  const [showWindArrows, setShowWindArrows] = useState(true);
   const [spreadPrediction, setSpreadPrediction] = useState(null);
   const popupOpenRef = useRef(false);
   const mapRef = useRef(null);
@@ -489,7 +535,11 @@ export default function MapPage() {
           setSelectedFire(data.nearest_fire);
           setUserSelectedFire(false);
           await fetchSpreadPrediction(data.nearest_fire.latitude, data.nearest_fire.longitude, data.nearest_fire.fire_confidence, data.nearest_fire.smoke_confidence);
+          fetchWindArrow(data.nearest_fire.latitude, data.nearest_fire.longitude);
         }
+        (data.nearby_fires || []).forEach((f) => {
+          if (f.latitude && f.longitude) fetchWindArrow(f.latitude, f.longitude);
+        });
         const count = (data.nearby_fires || []).length;
         if (!silent) {
           setToast({ message: `${count} fire${count !== 1 ? 's' : ''} found within 10 km`, type: 'warning' });
@@ -544,6 +594,21 @@ export default function MapPage() {
 
   const fetchWeather = async (lat, lng) => {
     await fetchSpreadPrediction(lat, lng, nearestFire?.fire_confidence || 0.8, nearestFire?.smoke_confidence || 0.6);
+    fetchWindArrow(lat, lng);
+  };
+
+  const fetchWindArrow = async (lat, lng) => {
+    try {
+      const res = await api.post('/weather', { latitude: lat, longitude: lng });
+      const w = res.data;
+      if (w && w.wind_speed != null && w.wind_direction != null) {
+        setWindArrows((prev) => {
+          // Remove existing arrow at same location
+          const filtered = prev.filter((a) => !(Math.abs(a.lat - lat) < 0.001 && Math.abs(a.lng - lng) < 0.001));
+          return [...filtered, { lat, lng, speed: w.wind_speed, direction: w.wind_direction }];
+        });
+      }
+    } catch {}
   };
 
   const showRouteToFire = async (lat, lng) => {
