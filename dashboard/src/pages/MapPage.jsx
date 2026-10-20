@@ -592,6 +592,15 @@ export default function MapPage() {
 
   const fetchNearby = async (type) => {
     if (!userPos) return;
+    // Toggle off if same type is already active
+    if (activeNearby === type) {
+      setNearbyPlaces([]);
+      setActiveNearby(null);
+      setNearbyRouteCoords([]);
+      setNearbyRouteInfo(null);
+      setShowWeather(false);
+      return;
+    }
     setNearbyLoading(true);
     setActiveNearby(type);
     try {
