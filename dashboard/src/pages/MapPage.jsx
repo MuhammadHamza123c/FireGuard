@@ -444,10 +444,16 @@ export default function MapPage() {
   }, []);
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
+    if (!navigator.geolocation) {
+      setUserPos([30.184, 71.481]);
+      return;
+    }
+    const watchId = navigator.geolocation.watchPosition(
       (pos) => setUserPos([pos.coords.latitude, pos.coords.longitude]),
-      () => setUserPos([30.184, 71.481])
+      () => setUserPos([30.184, 71.481]),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
+    return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
   useEffect(() => {
@@ -460,13 +466,22 @@ export default function MapPage() {
     }
   }, [lastAlert, userPos]);
 
+  const lastScanPosRef = useRef(null);
   useEffect(() => {
     if (!userPos) return;
-    if (!popupOpenRef.current) {
+    // Only scan if position changed significantly (100m+) or first scan
+    const last = lastScanPosRef.current;
+    const dLat = (userPos[0] - (last ? last[0] : userPos[0])) * 111000;
+    const dLng = (userPos[1] - (last ? last[1] : userPos[1])) * 111000 * Math.cos(userPos[0] * Math.PI / 180);
+    const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+    const shouldScan = !last || dist > 100;
+    if (shouldScan && !popupOpenRef.current) {
+      lastScanPosRef.current = userPos;
       findNearest(true);
     }
     const interval = setInterval(() => {
       if (!popupOpenRef.current) {
+        lastScanPosRef.current = userPos;
         findNearest(true);
       }
     }, 60000);
