@@ -1,4 +1,6 @@
 import logging
+import os
+import json
 from pathlib import Path
 
 import firebase_admin
@@ -15,6 +17,20 @@ def _get_cred():
     if _initialized:
         return _cred
 
+    # Try environment variable first (for Vercel/serverless)
+    env_key = os.getenv("FIREBASE_SERVICE_ACCOUNT")
+    if env_key:
+        try:
+            key_dict = json.loads(env_key)
+            _cred = credentials.Certificate(key_dict)
+            firebase_admin.initialize_app(_cred)
+            _initialized = True
+            logger.info("Firebase Admin initialized from env var")
+            return _cred
+        except Exception as e:
+            logger.warning(f"Failed to init from env var: {e}")
+
+    # Fall back to file (for local dev)
     key_path = Path(__file__).resolve().parent.parent.parent / "firebase-adminsdk.json"
 
     if key_path.exists():
