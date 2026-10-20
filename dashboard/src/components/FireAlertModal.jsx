@@ -158,7 +158,8 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
               const sCity = s.city.toLowerCase();
               return sCity === cityLower || sCity.includes(cityLower) || cityLower.includes(sCity);
             });
-            if (filtered.length > 0) suggestions = filtered;
+            // Strict: only user's city, no fallback
+            suggestions = filtered.length > 0 ? filtered : [];
           }
           setLocationSuggestions(suggestions);
         } else if (opencageKey) {
@@ -188,7 +189,8 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
               const sCity = s.city.toLowerCase();
               return sCity === cityLower || sCity.includes(cityLower) || cityLower.includes(sCity);
             });
-            if (filtered.length > 0) suggestions = filtered;
+            // Strict: only user's city, no fallback
+            suggestions = filtered.length > 0 ? filtered : [];
           }
           setLocationSuggestions(suggestions);
         } else {
@@ -218,7 +220,8 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
               const sCity = s.city.toLowerCase();
               return sCity === cityLower || sCity.includes(cityLower) || cityLower.includes(sCity);
             });
-            if (filtered.length > 0) suggestions = filtered;
+            // Strict: only user's city, no fallback
+            suggestions = filtered.length > 0 ? filtered : [];
           }
           setLocationSuggestions(suggestions);
         }
