@@ -129,49 +129,71 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
     const timer = setTimeout(async () => {
       setSearchingLocation(true);
       try {
-        // Photon API - faster autocomplete, better results
-        let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(locationQuery)}&limit=8`;
-        if (userCoords) {
-          url += `&lat=${userCoords.lat}&lon=${userCoords.lng}`;
-        }
-        const res = await fetch(url);
-        const data = await res.json();
-        const features = data?.features || [];
-        // Convert Photon format to Nominatim-like format
-        let suggestions = features.map((f) => {
-          const props = f.properties || {};
-          const name = [props.name, props.street, props.city || props.town || props.village, props.state, props.country]
-            .filter(Boolean)
-            .join(', ');
-          return {
-            display_name: name || props.name || 'Unknown',
-            lat: f.geometry?.coordinates?.[1],
-            lon: f.geometry?.coordinates?.[0],
-            city: props.city || props.town || props.village || null,
-          };
-        });
-        // Filter to only show results from user's current city
-        if (userCity) {
-          const cityLower = userCity.toLowerCase();
-          suggestions = suggestions.filter((s) => {
-            if (!s.city) return false; // exclude if no city info
-            const sCity = s.city.toLowerCase();
-            return sCity === cityLower || sCity.includes(cityLower) || cityLower.includes(sCity);
-          });
-        }
-        setLocationSuggestions(suggestions);
-      } catch {
-        // Fallback to Nominatim if Photon fails
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationQuery)}&limit=5`,
-            { headers: { 'User-Agent': 'FireGuard/1.0' } }
-          );
+        const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
+        if (mapboxToken) {
+          // Mapbox Geocoding API - best autocomplete
+          let url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(locationQuery)}.json?access_token=${mapboxToken}&limit=6&autocomplete=true`;
+          if (userCoords) {
+            url += `&proximity=${userCoords.lng},${userCoords.lat}`;
+          }
+          const res = await fetch(url);
           const data = await res.json();
-          setLocationSuggestions(Array.isArray(data) ? data : []);
-        } catch {
-          setLocationSuggestions([]);
+          const features = data?.features || [];
+          let suggestions = features.map((f) => {
+            const ctx = f.context || [];
+            const city = ctx.find((c) => c.id?.startsWith('place'))?.text || null;
+            return {
+              display_name: f.place_name || f.text || 'Unknown',
+              lat: f.center?.[1],
+              lon: f.center?.[0],
+              city: city,
+            };
+          });
+          // Filter to user's city if known
+          if (userCity) {
+            const cityLower = userCity.toLowerCase();
+            const filtered = suggestions.filter((s) => {
+              if (!s.city) return false;
+              const sCity = s.city.toLowerCase();
+              return sCity === cityLower || sCity.includes(cityLower) || cityLower.includes(sCity);
+            });
+            if (filtered.length > 0) suggestions = filtered;
+          }
+          setLocationSuggestions(suggestions);
+        } else {
+          // Fallback to Photon if no Mapbox token
+          let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(locationQuery)}&limit=8`;
+          if (userCoords) {
+            url += `&lat=${userCoords.lat}&lon=${userCoords.lng}`;
+          }
+          const res = await fetch(url);
+          const data = await res.json();
+          const features = data?.features || [];
+          let suggestions = features.map((f) => {
+            const props = f.properties || {};
+            const name = [props.name, props.street, props.city || props.town || props.village, props.state, props.country]
+              .filter(Boolean)
+              .join(', ');
+            return {
+              display_name: name || props.name || 'Unknown',
+              lat: f.geometry?.coordinates?.[1],
+              lon: f.geometry?.coordinates?.[0],
+              city: props.city || props.town || props.village || null,
+            };
+          });
+          if (userCity) {
+            const cityLower = userCity.toLowerCase();
+            const filtered = suggestions.filter((s) => {
+              if (!s.city) return false;
+              const sCity = s.city.toLowerCase();
+              return sCity === cityLower || sCity.includes(cityLower) || cityLower.includes(sCity);
+            });
+            if (filtered.length > 0) suggestions = filtered;
+          }
+          setLocationSuggestions(suggestions);
         }
+      } catch {
+        setLocationSuggestions([]);
       } finally {
         setSearchingLocation(false);
       }
