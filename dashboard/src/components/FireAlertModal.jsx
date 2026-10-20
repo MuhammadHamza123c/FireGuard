@@ -130,6 +130,7 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
       setSearchingLocation(true);
       try {
         const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
+        const opencageKey = import.meta.env.VITE_OPENCAGE_KEY || '';
         if (mapboxToken) {
           // Mapbox Geocoding API - best autocomplete
           let url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(locationQuery)}.json?access_token=${mapboxToken}&limit=6&autocomplete=true`;
@@ -160,8 +161,37 @@ export default function FireAlertModal({ result, onClose, onSaved }) {
             if (filtered.length > 0) suggestions = filtered;
           }
           setLocationSuggestions(suggestions);
+        } else if (opencageKey) {
+          // OpenCage Geocoding API
+          let url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(locationQuery)}&key=${opencageKey}&limit=6&no_annotations=1`;
+          if (userCoords) {
+            url += `&proximity=${userCoords.lat},${userCoords.lng}`;
+          }
+          const res = await fetch(url);
+          const data = await res.json();
+          const results = data?.results || [];
+          let suggestions = results.map((r) => {
+            const comp = r.components || {};
+            const city = comp.city || comp.town || comp.village || comp.county || null;
+            return {
+              display_name: r.formatted || 'Unknown',
+              lat: r.geometry?.lat,
+              lon: r.geometry?.lng,
+              city: city,
+            };
+          });
+          // Filter to user's city if known
+          if (userCity) {
+            const cityLower = userCity.toLowerCase();
+            const filtered = suggestions.filter((s) => {
+              if (!s.city) return false;
+              const sCity = s.city.toLowerCase();
+              return sCity === cityLower || sCity.includes(cityLower) || cityLower.includes(sCity);
+            });
+            if (filtered.length > 0) suggestions = filtered;
+          }
+          setLocationSuggestions(suggestions);
         } else {
-          // Fallback to Photon if no Mapbox token
           let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(locationQuery)}&limit=8`;
           if (userCoords) {
             url += `&lat=${userCoords.lat}&lon=${userCoords.lng}`;
