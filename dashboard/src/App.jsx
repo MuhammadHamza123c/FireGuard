@@ -14,7 +14,7 @@ function ProtectedRoute({ children }) {
 
 function PublicRoute({ children }) {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/dashboard" /> : children;
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : children;
 }
 
 export default function App() {
@@ -22,7 +22,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<PublicRoute><HomePage /></PublicRoute>} />
           <Route
             path="/login"
             element={<LoginPage />}
