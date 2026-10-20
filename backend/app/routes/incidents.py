@@ -8,6 +8,7 @@ from app.services.supabase_db import (
     update_incident,
     delete_incident,
     recalculate_points,
+    add_points,
 )
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
@@ -83,6 +84,8 @@ async def update_status(
                 detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}",
             )
 
+        old_status = incident.get("status")
+
         updated = await update_incident(incident_id, user["id"], {"status": req.status})
         if not updated:
             raise HTTPException(
@@ -91,6 +94,12 @@ async def update_status(
             )
 
         profile = await recalculate_points(user["id"])
+
+        # Add bonus points for status change (append-only)
+        if req.status == "IN_PROGRESS" and old_status != "IN_PROGRESS":
+            profile = await add_points(user["id"], 15)
+        elif req.status == "RESOLVED" and old_status != "RESOLVED":
+            profile = await add_points(user["id"], 25)
 
         return {
             "success": True,

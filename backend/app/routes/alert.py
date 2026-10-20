@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from app.core.deps import get_current_user
-from app.services.supabase_db import insert_detection, recalculate_points, get_all_push_tokens, delete_token_by_value
+from app.services.supabase_db import insert_detection, recalculate_points, add_points, get_all_push_tokens, delete_token_by_value
 from app.services.supabase_storage import upload_file, upload_audio_file
 from app.services.location import resolve_location
 from app.routes.live_alerts import broadcast_fire_alert
@@ -57,6 +57,14 @@ async def fire_alert(
         })
 
         profile = await recalculate_points(user["id"])
+
+        # Add points for this report (append-only, never decreases)
+        fire_c = req.fire_confidence or 0
+        smoke_c = req.smoke_confidence or 0
+        base_points = 10
+        if fire_c > 0.7 or smoke_c > 0.7:
+            base_points += 5
+        profile = await add_points(user["id"], base_points)
 
         await broadcast_fire_alert(record)
 

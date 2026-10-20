@@ -240,17 +240,55 @@ async def recalculate_points(user_id: str) -> dict:
             points -= 20
 
     points = max(0, points)
-    level = calculate_level(points)
+
+    # Preserve existing points (append-only: never decrease)
+    existing = await get_user_profile(user_id)
+    existing_points = (existing.get("points") or 0) if existing else 0
+    # Only use calculated points if profile doesn't exist yet
+    if not existing:
+        final_points = points
+    else:
+        final_points = existing_points  # Keep existing, don't overwrite
+
+    level = calculate_level(final_points)
 
     profile_data = {
         "user_id": user_id,
         "total_reports": total_reports,
         "verified_reports": verified,
         "false_reports": false_reports,
-        "points": points,
+        "points": final_points,
         "level": level,
     }
 
+    return await upsert_user_profile(profile_data)
+
+
+async def add_points(user_id: str, amount: int) -> dict:
+    """Add points to user profile (append-only, never decreases)."""
+    existing = await get_user_profile(user_id)
+    if not existing:
+        # Create profile with initial points
+        profile_data = {
+            "user_id": user_id,
+            "total_reports": 0,
+            "verified_reports": 0,
+            "false_reports": 0,
+            "points": max(0, amount),
+            "level": calculate_level(max(0, amount)),
+        }
+        return await upsert_user_profile(profile_data)
+
+    new_points = (existing.get("points") or 0) + amount
+    new_points = max(0, new_points)
+    profile_data = {
+        "user_id": user_id,
+        "total_reports": existing.get("total_reports", 0),
+        "verified_reports": existing.get("verified_reports", 0),
+        "false_reports": existing.get("false_reports", 0),
+        "points": new_points,
+        "level": calculate_level(new_points),
+    }
     return await upsert_user_profile(profile_data)
 
 
