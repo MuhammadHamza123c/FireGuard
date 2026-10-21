@@ -919,8 +919,19 @@ export default function MapPage() {
                 <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-4 animate-fadeInUp">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">{userSelectedFire ? 'Selected Fire' : 'Nearest Fire'}</h3>
-                    <div className="px-2 py-0.5 rounded-md bg-red-500/10 border border-red-500/20">
-                      <span className="text-[10px] font-bold text-red-400">{(localSelectedFire.distance_meters / 1000).toFixed(1)} km</span>
+                    <div className="flex items-center gap-2">
+                      <div className="px-2 py-0.5 rounded-md bg-red-500/10 border border-red-500/20">
+                        <span className="text-[10px] font-bold text-red-400">{(localSelectedFire.distance_meters / 1000).toFixed(1)} km</span>
+                      </div>
+                      <button
+                        onClick={() => { setSelectedFire(null); setUserSelectedFire(false); setSpreadPrediction(null); setWeather(null); setShowWeather(false); setRouteCoords([]); setSelectedRoute([]); setSafeRouteCoords([]); }}
+                        className="text-gray-500 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                        title="Close"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                   <div className="space-y-2.5">
@@ -977,7 +988,18 @@ export default function MapPage() {
                 <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-4 animate-fadeInUp">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Nearby Fires</h3>
-                    <span className="text-[10px] font-bold text-gray-500">{localNearbyFires.length} found</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-gray-500">{localNearbyFires.length} found</span>
+                      <button
+                        onClick={() => { setNearbyFires([]); }}
+                        className="text-gray-500 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                        title="Close"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
                     {localNearbyFires.map((f) => (
