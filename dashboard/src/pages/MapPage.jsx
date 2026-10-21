@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Fragment } from 'react';
-import html2canvas from 'html2canvas';
+import leafletImage from 'leaflet-image';
 import { useSearchParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -183,16 +183,16 @@ const FireMap = memo(function FireMap({
       <ZoomControls />
 
       <button
-        onClick={async () => {
-          try {
-            const mapEl = mapRef.current?.getContainer();
-            if (!mapEl) return;
-            const canvas = await html2canvas(mapEl, { useCORS: true, allowTaint: true, backgroundColor: null });
+        onClick={() => {
+          const map = mapRef.current;
+          if (!map) return;
+          leafletImage(map, (err, canvas) => {
+            if (err) return;
             const link = document.createElement('a');
             link.download = `fireguard-map-${new Date().toISOString().slice(0, 10)}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
-          } catch {}
+          });
         }}
         className="absolute top-4 right-32 z-[1000] rounded-xl p-2 transition-all flex items-center justify-center border shadow-2xl backdrop-blur-xl bg-gray-950/80 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
         title="Save map as PNG"
@@ -1019,6 +1019,25 @@ export default function MapPage() {
                 )}
 
                 {!nearbyLoading && nearbyPlaces.length > 0 && (
+                  <>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Nearby Places</span>
+                    <button
+                      onClick={() => {
+                        setNearbyPlaces([]);
+                        setActiveNearby(null);
+                        setNearbyRouteCoords([]);
+                        setNearbyRouteInfo(null);
+                        setShowWeather(false);
+                      }}
+                      className="text-gray-500 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                      title="Close"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                   <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
                     {nearbyPlaces.map((p) => (
                       <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
@@ -1035,6 +1054,7 @@ export default function MapPage() {
                       </div>
                     ))}
                   </div>
+                  </>
                 )}
 
                 {nearbyRouteInfo && (
