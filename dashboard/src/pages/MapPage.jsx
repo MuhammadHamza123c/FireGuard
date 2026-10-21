@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, memo, Fragment } fro
 import { useSearchParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet.heat';
 import MarkerClusterGroup from 'react-leaflet-markercluster';
 import 'react-leaflet-markercluster/styles';
 
@@ -147,6 +148,43 @@ function Recenter({ center }) {
   return null;
 }
 
+function HeatMapLayer({ points, visible }) {
+  const map = useMap();
+  const layerRef = useRef(null);
+
+  useEffect(() => {
+    if (!visible || !points || points.length === 0) {
+      if (layerRef.current) {
+        map.removeLayer(layerRef.current);
+        layerRef.current = null;
+      }
+      return;
+    }
+
+    const heatPoints = points.map((p) => [p.lat, p.lng, p.intensity || 0.5]);
+
+    if (layerRef.current) {
+      map.removeLayer(layerRef.current);
+    }
+    layerRef.current = L.heatLayer(heatPoints, {
+      radius: 35,
+      blur: 25,
+      maxZoom: 17,
+      max: 1.0,
+      gradient: { 0.2: '#22c55e', 0.4: '#eab308', 0.6: '#f97316', 0.8: '#ef4444', 1.0: '#dc2626' },
+    }).addTo(map);
+
+    return () => {
+      if (layerRef.current) {
+        map.removeLayer(layerRef.current);
+        layerRef.current = null;
+      }
+    };
+  }, [points, visible, map]);
+
+  return null;
+}
+
 function MapClickHandler({ onMapClick }) {
   useMapEvents({
     click(e) {
@@ -179,7 +217,17 @@ const FireMap = memo(function FireMap({
     >
       <TileLayer key={mapStyle} attribution={mapStyle === 'satellite' || mapStyle === 'terrain' ? '&copy; Esri' : '&copy; OSM'} url={MAP_TILES[mapStyle]} />
 
+      <HeatMapLayer points={heatMapPoints} visible={showHeatMap} />
+
       <ZoomControls />
+
+      <button
+        onClick={() => { setShowHeatMap((v) => { if (!v) fetchHeatMapData(); return !v; }); }}
+        className={`absolute top-4 right-16 z-[1000] rounded-xl p-2 transition-all flex items-center justify-center border shadow-2xl backdrop-blur-xl ${showHeatMap ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-gray-950/80 border-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
+        title={showHeatMap ? 'Hide heat map' : 'Show heat map'}
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg>
+      </button>
 
       {userPos && (
         <Marker position={userPos} icon={userIcon}>
@@ -366,6 +414,8 @@ export default function MapPage() {
   const [showWeather, setShowWeather] = useState(false);
   const [weatherCoords, setWeatherCoords] = useState(null);
   const [spreadPrediction, setSpreadPrediction] = useState(null);
+  const [showHeatMap, setShowHeatMap] = useState(false);
+  const [heatMapPoints, setHeatMapPoints] = useState([]);
   const popupOpenRef = useRef(false);
   const mapRef = useRef(null);
 
@@ -559,6 +609,15 @@ export default function MapPage() {
 
   const fetchWeather = async (lat, lng) => {
     await fetchSpreadPrediction(lat, lng, nearestFire?.fire_confidence || 0.8, nearestFire?.smoke_confidence || 0.6);
+  };
+
+  const fetchHeatMapData = async () => {
+    try {
+      const res = await api.get('/heatmap');
+      setHeatMapPoints(res.data.points || []);
+    } catch {
+      setHeatMapPoints([]);
+    }
   };
 
   const showRouteToFire = async (lat, lng) => {

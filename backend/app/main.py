@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from app.routes import image, video, auth, alert, route, incidents, profile, live_alerts, weather, fire_spread, notifications, nearby
+from app.routes import image, video, auth, alert, route, incidents, profile, live_alerts, weather, fire_spread, notifications, nearby, heatmap
 from app.models.roboflow import get_client
 
 
@@ -54,6 +54,7 @@ app.include_router(weather.router)
 app.include_router(fire_spread.router)
 app.include_router(notifications.router)
 app.include_router(nearby.router)
+app.include_router(heatmap.router)
 
 
 @app.on_event("startup")
