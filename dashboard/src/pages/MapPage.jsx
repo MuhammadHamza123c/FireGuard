@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Fragment } from 'react';
+import html2canvas from 'html2canvas';
 import { useSearchParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -220,6 +221,24 @@ const FireMap = memo(function FireMap({
       <HeatMapLayer points={heatMapPoints} visible={showHeatMap} />
 
       <ZoomControls />
+
+      <button
+        onClick={async () => {
+          try {
+            const mapEl = mapRef.current?.getContainer();
+            if (!mapEl) return;
+            const canvas = await html2canvas(mapEl, { useCORS: true, allowTaint: true, backgroundColor: null });
+            const link = document.createElement('a');
+            link.download = `fireguard-map-${new Date().toISOString().slice(0, 10)}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+          } catch {}
+        }}
+        className="absolute top-4 right-32 z-[1000] rounded-xl p-2 transition-all flex items-center justify-center border shadow-2xl backdrop-blur-xl bg-gray-950/80 border-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+        title="Save map as PNG"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+      </button>
 
       <button
         onClick={() => { setShowHeatMap((v) => { if (!v) fetchHeatMapData(); return !v; }); }}
