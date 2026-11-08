@@ -550,7 +550,6 @@ export default function MapPage() {
         if (!userSelectedFire) {
           setSelectedFire(data.nearest_fire);
           setUserSelectedFire(false);
-          await fetchSpreadPrediction(data.nearest_fire.latitude, data.nearest_fire.longitude, data.nearest_fire.fire_confidence, data.nearest_fire.smoke_confidence);
         }
         const count = (data.nearby_fires || []).length;
         if (!silent) {
