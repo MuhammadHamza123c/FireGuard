@@ -336,8 +336,8 @@ const FireMap = memo(function FireMap({
       {nearbyRouteCoords.length > 0 && <Polyline positions={nearbyRouteCoords} pathOptions={{ color: '#3b82f6', weight: 5, opacity: 0.9, dashArray: '12, 8', lineCap: 'round' }} />}
       {selectedRoute.length > 0 && <Polyline positions={selectedRoute} pathOptions={{ color: '#facc15', weight: 6, opacity: 1, dashArray: '10, 8', lineCap: 'round' }} />}
 
-      {spreadPrediction?.next_hotspots?.map((spot, index) => {
-        const tone = spot.risk_score >= 80 ? '#ef4444' : spot.risk_score >= 60 ? '#f97316' : '#eab308';
+      {spreadPrediction?.next_hotspots?.slice(0, 1).map((spot, index) => {
+        const tone = '#ef4444';
         return (
           <Fragment key={`forecast-${index}`}>
             <Circle
@@ -1065,26 +1065,26 @@ export default function MapPage() {
                     </div>
                   </div>
 
-                  {/* Forecast hotspots */}
+                  {/* Forecast hotspots - only high risk */}
                   {localSpreadPrediction.next_hotspots?.length > 0 && (
                     <div>
-                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Forecast Hotspots</div>
+                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Forecast Hotspot</div>
                       <div className="space-y-2">
-                        {localSpreadPrediction.next_hotspots.map((spot, i) => {
-                          const riskColor = spot.risk_score >= 80 ? 'text-red-300' : spot.risk_score >= 60 ? 'text-red-400' : spot.risk_score >= 40 ? 'text-red-300' : 'text-red-200';
-                          const barColor = spot.risk_score >= 80 ? 'bg-red-600' : spot.risk_score >= 60 ? 'bg-red-500' : spot.risk_score >= 40 ? 'bg-red-400' : 'bg-red-300';
+                        {localSpreadPrediction.next_hotspots.slice(0, 1).map((spot, i) => {
                           return (
-                            <div key={i} className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02] border border-white/5">
-                              <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold ${riskColor} bg-white/5`}>
-                                {i + 1}
+                            <div key={i} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                              <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-red-500/20 border border-red-500/30">
+                                <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                                </svg>
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[10px] text-gray-400">{spot.distance_km} km {spot.direction}</span>
-                                  <span className={`text-[10px] font-bold ${riskColor}`}>{spot.risk_score?.toFixed(0)}%</span>
+                                  <span className="text-[11px] font-medium text-white">{spot.distance_km} km {spot.direction}</span>
+                                  <span className="text-[11px] font-bold text-red-400">{spot.risk_score?.toFixed(0)}%</span>
                                 </div>
-                                <div className="h-1 rounded-full bg-white/5 mt-1 overflow-hidden">
-                                  <div className={`h-full rounded-full ${barColor} transition-all duration-500`} style={{ width: `${Math.min(spot.risk_score || 0, 100)}%` }} />
+                                <div className="h-1.5 rounded-full bg-red-500/10 mt-1.5 overflow-hidden">
+                                  <div className="h-full rounded-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-500" style={{ width: `${Math.min(spot.risk_score || 0, 100)}%` }} />
                                 </div>
                               </div>
                             </div>
@@ -1095,15 +1095,13 @@ export default function MapPage() {
                   )}
 
                   {/* Vulnerable zones */}
-                  {localSpreadPrediction.vulnerable_zones?.length > 0 && (
+                  {localSpreadPrediction.vulnerable_zones?.filter(z => z.risk === 'high')?.length > 0 && (
                     <div>
-                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Vulnerable Zones</div>
+                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Vulnerable Zone</div>
                       <div className="space-y-2">
-                        {localSpreadPrediction.vulnerable_zones.map((zone, i) => (
+                        {localSpreadPrediction.vulnerable_zones.filter(z => z.risk === 'high').map((zone, i) => (
                           <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
-                            <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                              zone.risk === 'high' ? 'bg-red-500' : zone.risk === 'moderate' ? 'bg-red-400' : 'bg-red-300'
-                            }`} />
+                            <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 bg-red-500" />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
                                 <span className="text-[11px] font-medium text-white">{zone.zone}</span>
