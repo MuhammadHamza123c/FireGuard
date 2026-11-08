@@ -1096,40 +1096,6 @@ export default function MapPage() {
                 </div>
               )}
 
-              {localNearbyFires.length > 0 && (
-                <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-4 animate-fadeInUp">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Nearby Fires</h3>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-gray-500">{localNearbyFires.length} found</span>
-                      <button
-                        onClick={() => { setNearbyFires([]); }}
-                        className="text-gray-500 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
-                        title="Close"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-                    {localNearbyFires.map((f) => (
-                      <div key={f.id} className="group flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all cursor-pointer" onClick={() => showRouteToFire(f.latitude, f.longitude)}>
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${f.status === 'IN_PROGRESS' ? 'bg-yellow-400' : 'bg-red-400'}`} />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-medium text-white truncate">{f.incident_type}</div>
-                          <div className="text-[10px] text-gray-500">{(f.distance_meters / 1000).toFixed(1)} km away</div>
-                        </div>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${f.status === 'IN_PROGRESS' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-400'}`}>
-                          {f.status === 'IN_PROGRESS' ? 'IN PROG' : 'DETECTED'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-4">
                 <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-3">Nearby Places</h3>
                 <div className="grid grid-cols-2 gap-2 mb-3">
