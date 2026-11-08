@@ -488,7 +488,7 @@ export default function MapPage() {
     setSelectedFire(fire);
     setUserSelectedFire(true);
     fetchSpreadPrediction(fire.latitude, fire.longitude, fire.fire_confidence || 0.8, fire.smoke_confidence || 0.6);
-  }, []);
+  }, [fetchSpreadPrediction]);
 
   useEffect(() => {
     if (!navigator.geolocation) {
