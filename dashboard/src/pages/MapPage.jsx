@@ -13,49 +13,76 @@ import useLiveAlerts from '../hooks/useLiveAlerts';
 
 
 function createSvgIcon(color, size = 36) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size + 12}" viewBox="0 0 36 48">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size + 14}" viewBox="0 0 40 54">
     <defs>
-      <filter id="glow${color}" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="3" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      <radialGradient id="fireGlow${color.replace('#','')}" cx="50%" cy="40%" r="50%">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.4"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="shadow${color.replace('#','')}" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(0,0,0,0.4)"/>
       </filter>
     </defs>
-    <circle cx="18" cy="18" r="12" fill="${color}" opacity="0.15" filter="url(#glow${color})"/>
-    <circle cx="18" cy="18" r="8" fill="${color}" opacity="0.3"/>
-    <path d="M18 2C18 2 8 14 8 22a10 10 0 0020 0C28 14 18 2 18 2z" fill="${color}" stroke="white" stroke-width="1.5" stroke-linejoin="round" filter="url(#glow${color})"/>
-    <path d="M18 10c0 0-4 5-4 9a4 4 0 008 0c0-4-4-9-4-9z" fill="white" opacity="0.6"/>
+    <!-- Outer glow -->
+    <circle cx="20" cy="20" r="18" fill="url(#fireGlow${color.replace('#','')})" />
+    <!-- Pin body -->
+    <path d="M20 3C20 3 9 16 9 24.5a11 11 0 0022 0C31 16 20 3 20 3z" fill="${color}" stroke="white" stroke-width="2" stroke-linejoin="round" filter="url(#shadow${color.replace('#','')})"/>
+    <!-- Inner flame -->
+    <path d="M20 12c0 0-4 5.5-4 9.5a4 4 0 008 0c0-4-4-9.5-4-9.5z" fill="white" opacity="0.85"/>
+    <!-- Flame core -->
+    <path d="M20 17c0 0-2 2.5-2 4.5a2 2 0 004 0c0-2-2-4.5-2-4.5z" fill="${color}" opacity="0.9"/>
+    <!-- Stem -->
+    <rect x="18.5" y="34" width="3" height="8" rx="1.5" fill="${color}" opacity="0.6"/>
+    <!-- Base dot -->
+    <circle cx="20" cy="46" r="3.5" fill="${color}" stroke="white" stroke-width="1.5" opacity="0.9"/>
   </svg>`;
   return L.divIcon({
     html: svg,
     className: '',
-    iconSize: [size, size + 12],
-    iconAnchor: [size / 2, size + 12],
-    popupAnchor: [0, -(size + 4)],
+    iconSize: [size, size + 14],
+    iconAnchor: [size / 2, size + 14],
+    popupAnchor: [0, -(size + 6)],
   });
 }
 
 function createUserIcon() {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
     <defs>
-      <filter id="uglow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <filter id="uglow2" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
         <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
       </filter>
     </defs>
-    <circle cx="20" cy="20" r="18" fill="#3b82f6" opacity="0.12"/>
-    <circle cx="20" cy="20" r="12" fill="#3b82f6" opacity="0.25"/>
-    <circle cx="20" cy="20" r="7" fill="#3b82f6" stroke="white" stroke-width="2" filter="url(#uglow)"/>
-    <circle cx="20" cy="20" r="3" fill="white"/>
+    <!-- Outer pulse ring -->
+    <circle cx="22" cy="22" r="20" fill="#3b82f6" opacity="0.08">
+      <animate attributeName="r" values="18;21;18" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.12;0.04;0.12" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <!-- Middle ring -->
+    <circle cx="22" cy="22" r="14" fill="#3b82f6" opacity="0.18"/>
+    <!-- Core dot -->
+    <circle cx="22" cy="22" r="8" fill="#3b82f6" stroke="white" stroke-width="2.5" filter="url(#uglow2)"/>
+    <!-- Center highlight -->
+    <circle cx="22" cy="22" r="3" fill="white" opacity="0.9"/>
   </svg>`;
-  return L.divIcon({ html: svg, className: '', iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -22] });
+  return L.divIcon({ html: svg, className: '', iconSize: [44, 44], iconAnchor: [22, 22], popupAnchor: [0, -24] });
 }
 
-function createNearbyIcon(color) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
-    <circle cx="14" cy="14" r="12" fill="${color}" opacity="0.15"/>
-    <circle cx="14" cy="14" r="7" fill="${color}" stroke="white" stroke-width="1.5"/>
+function createNearbyIcon(color, emoji) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+    <defs>
+      <filter id="nshadow${color.replace('#','')}" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="rgba(0,0,0,0.3)"/>
+      </filter>
+    </defs>
+    <!-- Outer glow -->
+    <circle cx="16" cy="16" r="14" fill="${color}" opacity="0.12"/>
+    <!-- Badge circle -->
+    <circle cx="16" cy="16" r="11" fill="${color}" stroke="white" stroke-width="2" filter="url(#nshadow${color.replace('#','')})" opacity="0.95"/>
+    <!-- Icon symbol -->
+    <text x="16" y="21" text-anchor="middle" fill="white" font-size="12" font-weight="bold" font-family="sans-serif">${emoji}</text>
   </svg>`;
-  return L.divIcon({ html: svg, className: '', iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16] });
+  return L.divIcon({ html: svg, className: '', iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -18] });
 }
 
 function isVideoUrl(url) {
@@ -104,10 +131,10 @@ const fireIconOrange = createSvgIcon('#f97316');
 const userIcon = createUserIcon();
 
 const nearbyIconMap = {
-  hospital: createNearbyIcon('#22c55e'),
-  fire_station: createNearbyIcon('#ef4444'),
-  police: createNearbyIcon('#8b5cf6'),
-  pharmacy: createNearbyIcon('#f97316'),
+  hospital: createNearbyIcon('#22c55e', 'H'),
+  fire_station: createNearbyIcon('#ef4444', 'F'),
+  police: createNearbyIcon('#8b5cf6', 'P'),
+  pharmacy: createNearbyIcon('#f97316', 'Rx'),
 };
 
 function FitBounds({ coords }) {
