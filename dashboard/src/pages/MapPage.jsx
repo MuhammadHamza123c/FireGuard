@@ -558,8 +558,20 @@ export default function MapPage() {
           setToast({ message: `${count} fire${count !== 1 ? 's' : ''} found within 10 km`, type: 'warning' });
           setShowSidebar(true);
         }
-      } else if (!silent) {
-        setToast({ message: 'No fire incidents in database', type: 'info' });
+      } else {
+        setNearestFire(null);
+        setNearbyFires([]);
+        setSelectedFire(null);
+        setUserSelectedFire(false);
+        setSpreadPrediction(null);
+        setWeather(null);
+        setShowWeather(false);
+        setRouteCoords([]);
+        setSelectedRoute([]);
+        setSafeRouteCoords([]);
+        if (!silent) {
+          setToast({ message: data.message || 'No fire incidents within 10 km', type: 'info' });
+        }
       }
     } catch {
       if (!silent) setToast({ message: 'Failed to find nearest fire', type: 'error' });

@@ -37,6 +37,16 @@ async def nearest_fire(req: NearestFireRequest):
                 "route": None,
             }
 
+        # Only show nearest fire if within 10km radius
+        if fire.get("distance_meters", float("inf")) > 10000:
+            return {
+                "success": True,
+                "message": "No fire incidents within 10 km of your location",
+                "nearest_fire": None,
+                "nearby_fires": [],
+                "route": None,
+            }
+
         route = await get_osrm_route(
             req.latitude, req.longitude, fire["latitude"], fire["longitude"]
         )
