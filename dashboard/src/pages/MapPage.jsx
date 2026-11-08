@@ -996,7 +996,7 @@ export default function MapPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
                         </svg>
                       </div>
-                      <h3 className="text-[10px] font-bold text-red-300/80 uppercase tracking-[0.15em]">Fire Spread Forecast</h3>
+                      <h3 className="text-[10px] font-bold text-red-300/80 uppercase tracking-[0.15em]">Fire Spread</h3>
                     </div>
                     <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
                       localSpreadPrediction.risk_level === 'critical' ? 'bg-red-600/30 text-red-300 border-red-500/40' :
