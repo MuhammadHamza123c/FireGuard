@@ -964,11 +964,11 @@ export default function MapPage() {
                       </div>
                       <button
                         onClick={() => { setSelectedFire(null); setUserSelectedFire(false); setNearestFire(null); setNearbyFires([]); setSpreadPrediction(null); setWeather(null); setShowWeather(false); setRouteCoords([]); setSelectedRoute([]); setSafeRouteCoords([]); setNearbyRouteCoords([]); setNearbyRouteInfo(null); setNearbyPlaces([]); setActiveNearby(null); }}
-                        className="text-gray-500 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                        className="flex items-center justify-center w-7 h-7 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all"
                         title="Close"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
                     </div>
@@ -1185,11 +1185,11 @@ export default function MapPage() {
                         setNearbyRouteInfo(null);
                         setShowWeather(false);
                       }}
-                      className="text-gray-500 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                      className="flex items-center justify-center w-6 h-6 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 hover:text-red-300 transition-all"
                       title="Close"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   </div>
