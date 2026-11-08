@@ -342,7 +342,7 @@ const FireMap = memo(function FireMap({
           <Fragment key={`forecast-${index}`}>
             <Circle
               center={[spot.latitude, spot.longitude]}
-              radius={Math.max(600, spot.distance_km * 1200)}
+              radius={Math.max(400, spot.distance_km * 800)}
               pathOptions={{ color: tone, fillColor: tone, fillOpacity: 0.12, weight: 1.5 }}
             />
             <CircleMarker
@@ -598,18 +598,18 @@ export default function MapPage() {
       setSpreadPrediction(predictRes.data);
     } catch {
       setSpreadPrediction({
-        risk_score: 72,
-        risk_level: 'high',
+        risk_score: 55,
+        risk_level: 'moderate',
         spread_direction: { label: 'EAST', bearing_degrees: 90 },
         next_hotspots: [
-          { latitude: lat + 0.01, longitude: lng + 0.01, distance_km: 1.0, direction: 'EAST', risk_score: 78 },
-          { latitude: lat + 0.02, longitude: lng + 0.02, distance_km: 2.0, direction: 'EAST', risk_score: 69 },
-          { latitude: lat + 0.03, longitude: lng + 0.03, distance_km: 3.0, direction: 'EAST', risk_score: 58 },
+          { latitude: lat + 0.003, longitude: lng + 0.003, distance_km: 0.3, direction: 'EAST', risk_score: 62 },
+          { latitude: lat + 0.006, longitude: lng + 0.006, distance_km: 0.6, direction: 'EAST', risk_score: 54 },
+          { latitude: lat + 0.01, longitude: lng + 0.01, distance_km: 1.0, direction: 'EAST', risk_score: 45 },
         ],
         vulnerable_zones: [
-          { zone: 'Forest edge', distance_km: 1.2, reason: 'Dry vegetation and wind support fast flame movement.' },
-          { zone: 'Residential cluster', distance_km: 2.2, reason: 'Structures are exposed to ember spread.' },
-          { zone: 'Road corridor', distance_km: 3.4, reason: 'Access routes may be blocked by fire movement.' },
+          { zone: 'Forest edge', distance_km: 0.5, reason: 'Dry vegetation and wind support fast flame movement.' },
+          { zone: 'Residential cluster', distance_km: 1.0, reason: 'Structures are exposed to ember spread.' },
+          { zone: 'Road corridor', distance_km: 1.5, reason: 'Access routes may be blocked by fire movement.' },
         ],
       });
     }

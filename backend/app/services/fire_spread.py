@@ -1,12 +1,12 @@
 import math
 
 TERRAIN_MULTIPLIERS = {
-    "forest": 22,
-    "grassland": 16,
-    "urban": 10,
-    "mountain": 14,
-    "wetland": 8,
-    "dryland": 18,
+    "forest": 12,
+    "grassland": 10,
+    "urban": 6,
+    "mountain": 8,
+    "wetland": 4,
+    "dryland": 11,
 }
 
 
@@ -48,7 +48,7 @@ def _direction_label(degrees: float) -> str:
 def _spread_bearing(wind_direction: float | None, wind_speed: float | None) -> float:
     base = float(wind_direction) if wind_direction is not None else 270.0
     if wind_speed is not None:
-        base += max(0.0, min(25.0, wind_speed * 0.4))
+        base += max(0.0, min(10.0, wind_speed * 0.2))
     return (base + 180.0) % 360.0
 
 
@@ -102,12 +102,12 @@ def predict_fire_spread(
     spread_bearing = _spread_bearing(wind_direction, speed)
     spread_label = _direction_label(spread_bearing)
 
-    dryness_score = _clamp((100.0 - humidity_value) * 0.7, 0.0, 50.0)
-    temperature_score = _clamp((temperature_value - 20.0) * 2.2, 0.0, 35.0)
-    wind_score = _clamp(speed * 1.6, 0.0, 40.0)
-    fire_score = _clamp(fire_conf * 55.0, 0.0, 45.0)
-    smoke_score = _clamp(smoke_conf * 30.0, 0.0, 20.0)
-    terrain_score = TERRAIN_MULTIPLIERS.get(normalized_terrain, 18)
+    dryness_score = _clamp((100.0 - humidity_value) * 0.4, 0.0, 30.0)
+    temperature_score = _clamp((temperature_value - 20.0) * 1.2, 0.0, 20.0)
+    wind_score = _clamp(speed * 0.9, 0.0, 25.0)
+    fire_score = _clamp(fire_conf * 30.0, 0.0, 25.0)
+    smoke_score = _clamp(smoke_conf * 15.0, 0.0, 12.0)
+    terrain_score = TERRAIN_MULTIPLIERS.get(normalized_terrain, 11)
 
     risk_score = _clamp(
         dryness_score + temperature_score + wind_score + fire_score + smoke_score + terrain_score,
@@ -116,12 +116,12 @@ def predict_fire_spread(
     )
 
     next_hotspots = []
-    hotspot_distances = [0.8, 1.6, 2.8]
+    hotspot_distances = [0.3, 0.6, 1.0]
     hotspot_severity = ["high", "medium", "watch"]
 
     for distance_km, level in zip(hotspot_distances, hotspot_severity):
         hotspot_lat, hotspot_lon = _offset_coordinates(latitude, longitude, distance_km, spread_bearing)
-        hotspot_risk = _clamp(risk_score * (0.9 - (distance_km * 0.08)), 20.0, 99.0)
+        hotspot_risk = _clamp(risk_score * (0.9 - (distance_km * 0.15)), 20.0, 99.0)
         next_hotspots.append(
             {
                 "latitude": round(hotspot_lat, 6),
@@ -137,21 +137,21 @@ def predict_fire_spread(
         {
             "zone": "Forest edge",
             "direction": spread_label,
-            "distance_km": 1.2,
+            "distance_km": 0.5,
             "risk": "high",
             "reason": "Dry vegetation and wind support fast flame movement.",
         },
         {
             "zone": "Residential cluster",
             "direction": spread_label,
-            "distance_km": 2.2,
+            "distance_km": 1.0,
             "risk": "moderate",
             "reason": "Structures and fuel storage increase exposure to embers.",
         },
         {
             "zone": "Road corridor",
             "direction": spread_label,
-            "distance_km": 3.4,
+            "distance_km": 1.5,
             "risk": "watch",
             "reason": "Access routes may become blocked if the fire intensifies.",
         },
