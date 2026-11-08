@@ -1008,15 +1008,22 @@ export default function MapPage() {
               )}
 
               {localSpreadPrediction && (
-                <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-4 animate-fadeInUp space-y-4">
+                <div className="rounded-2xl bg-gradient-to-br from-red-500/[0.06] to-orange-500/[0.03] border border-red-500/10 p-4 animate-fadeInUp space-y-4 shadow-lg shadow-red-500/5">
                   {/* Header with risk badge */}
                   <div className="flex items-center justify-between">
-                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Fire Spread Forecast</h3>
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-[10px] font-bold text-red-300/80 uppercase tracking-[0.15em]">Fire Spread Forecast</h3>
+                    </div>
                     <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
-                      localSpreadPrediction.risk_level === 'critical' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
-                      localSpreadPrediction.risk_level === 'high' ? 'bg-orange-500/20 text-orange-300 border-orange-500/30' :
-                      localSpreadPrediction.risk_level === 'moderate' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
-                      'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      localSpreadPrediction.risk_level === 'critical' ? 'bg-red-600/30 text-red-300 border-red-500/40' :
+                      localSpreadPrediction.risk_level === 'high' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                      localSpreadPrediction.risk_level === 'moderate' ? 'bg-red-400/15 text-red-300 border-red-400/25' :
+                      'bg-red-300/10 text-red-200 border-red-300/20'
                     }`}>
                       {localSpreadPrediction.risk_level?.toUpperCase()}
                     </span>
@@ -1031,10 +1038,10 @@ export default function MapPage() {
                     <div className="h-2 rounded-full bg-white/5 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-700 ${
-                          localSpreadPrediction.risk_level === 'critical' ? 'bg-gradient-to-r from-red-600 to-red-400' :
-                          localSpreadPrediction.risk_level === 'high' ? 'bg-gradient-to-r from-orange-600 to-orange-400' :
-                          localSpreadPrediction.risk_level === 'moderate' ? 'bg-gradient-to-r from-amber-600 to-amber-400' :
-                          'bg-gradient-to-r from-emerald-600 to-emerald-400'
+                          localSpreadPrediction.risk_level === 'critical' ? 'bg-gradient-to-r from-red-700 via-red-500 to-red-400' :
+                          localSpreadPrediction.risk_level === 'high' ? 'bg-gradient-to-r from-red-600 via-red-500 to-red-300' :
+                          localSpreadPrediction.risk_level === 'moderate' ? 'bg-gradient-to-r from-red-500 via-red-400 to-red-300' :
+                          'bg-gradient-to-r from-red-400 via-red-300 to-red-200'
                         }`}
                         style={{ width: `${Math.min(localSpreadPrediction.risk_score || 0, 100)}%` }}
                       />
@@ -1064,8 +1071,8 @@ export default function MapPage() {
                       <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Forecast Hotspots</div>
                       <div className="space-y-2">
                         {localSpreadPrediction.next_hotspots.map((spot, i) => {
-                          const riskColor = spot.risk_score >= 80 ? 'text-red-400' : spot.risk_score >= 60 ? 'text-orange-400' : spot.risk_score >= 40 ? 'text-amber-400' : 'text-emerald-400';
-                          const barColor = spot.risk_score >= 80 ? 'bg-red-500' : spot.risk_score >= 60 ? 'bg-orange-500' : spot.risk_score >= 40 ? 'bg-amber-500' : 'bg-emerald-500';
+                          const riskColor = spot.risk_score >= 80 ? 'text-red-300' : spot.risk_score >= 60 ? 'text-red-400' : spot.risk_score >= 40 ? 'text-red-300' : 'text-red-200';
+                          const barColor = spot.risk_score >= 80 ? 'bg-red-600' : spot.risk_score >= 60 ? 'bg-red-500' : spot.risk_score >= 40 ? 'bg-red-400' : 'bg-red-300';
                           return (
                             <div key={i} className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02] border border-white/5">
                               <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold ${riskColor} bg-white/5`}>
@@ -1095,7 +1102,7 @@ export default function MapPage() {
                         {localSpreadPrediction.vulnerable_zones.map((zone, i) => (
                           <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
                             <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                              zone.risk === 'high' ? 'bg-red-400' : zone.risk === 'moderate' ? 'bg-amber-400' : 'bg-emerald-400'
+                              zone.risk === 'high' ? 'bg-red-500' : zone.risk === 'moderate' ? 'bg-red-400' : 'bg-red-300'
                             }`} />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
