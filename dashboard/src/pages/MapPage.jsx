@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Fragment } from 'react';
-import html2canvas from 'html2canvas';
+import { domToPng } from 'modern-screenshot';
 import { useSearchParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -187,36 +187,11 @@ const FireMap = memo(function FireMap({
           try {
             const mapEl = mapRef.current?.getContainer();
             if (!mapEl) return;
-            const canvas = await html2canvas(mapEl, {
-              useCORS: true,
-              allowTaint: true,
-              backgroundColor: '#1a1a2e',
-              onclone: (clonedDoc) => {
-                // Fix oklab colors that html2canvas can't parse
-                const allEls = clonedDoc.querySelectorAll('*');
-                allEls.forEach((el) => {
-                  const style = el.style;
-                  if (style) {
-                    for (let i = 0; i < style.length; i++) {
-                      const prop = style[i];
-                      const val = style.getPropertyValue(prop);
-                      if (val && val.includes('oklab')) {
-                        style.setProperty(prop, 'rgba(255,255,255,0.5)', style.getPropertyPriority(prop));
-                      }
-                    }
-                  }
-                });
-              },
-            });
-            canvas.toBlob((blob) => {
-              if (!blob) return;
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.download = `fireguard-map-${new Date().toISOString().slice(0, 10)}.png`;
-              link.href = url;
-              link.click();
-              URL.revokeObjectURL(url);
-            });
+            const dataUrl = await domToPng(mapEl, { scale: 2, backgroundColor: '#1a1a2e' });
+            const link = document.createElement('a');
+            link.download = `fireguard-map-${new Date().toISOString().slice(0, 10)}.png`;
+            link.href = dataUrl;
+            link.click();
           } catch (e) {
             console.error('Screenshot failed:', e);
           }
