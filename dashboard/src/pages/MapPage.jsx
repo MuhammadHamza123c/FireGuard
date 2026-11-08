@@ -926,7 +926,7 @@ export default function MapPage() {
                         <span className="text-[10px] font-bold text-red-400">{(localSelectedFire.distance_meters / 1000).toFixed(1)} km</span>
                       </div>
                       <button
-                        onClick={() => { setSelectedFire(null); setUserSelectedFire(false); setSpreadPrediction(null); setWeather(null); setShowWeather(false); setRouteCoords([]); setSelectedRoute([]); setSafeRouteCoords([]); }}
+                        onClick={() => { setSelectedFire(null); setUserSelectedFire(false); setNearestFire(null); setNearbyFires([]); setSpreadPrediction(null); setWeather(null); setShowWeather(false); setRouteCoords([]); setSelectedRoute([]); setSafeRouteCoords([]); setNearbyRouteCoords([]); setNearbyRouteInfo(null); setNearbyPlaces([]); setActiveNearby(null); }}
                         className="text-gray-500 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
                         title="Close"
                       >
