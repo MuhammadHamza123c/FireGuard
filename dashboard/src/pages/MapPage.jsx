@@ -1008,18 +1008,107 @@ export default function MapPage() {
               )}
 
               {localSpreadPrediction && (
-                <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-4 animate-fadeInUp">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Forecast</h3>
-                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${localSpreadPrediction.risk_level === 'critical' ? 'bg-red-500/20 text-red-400' : localSpreadPrediction.risk_level === 'high' ? 'bg-orange-500/20 text-orange-300' : localSpreadPrediction.risk_level === 'moderate' ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-4 animate-fadeInUp space-y-4">
+                  {/* Header with risk badge */}
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Fire Spread Forecast</h3>
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
+                      localSpreadPrediction.risk_level === 'critical' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                      localSpreadPrediction.risk_level === 'high' ? 'bg-orange-500/20 text-orange-300 border-orange-500/30' :
+                      localSpreadPrediction.risk_level === 'moderate' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+                      'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    }`}>
                       {localSpreadPrediction.risk_level?.toUpperCase()}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-gray-300">
-                    <span className="text-gray-500">Risk</span>
-                    <span className="font-semibold text-white">{localSpreadPrediction.risk_score?.toFixed(1) || '0.0'}</span>
+                  {/* Risk score meter */}
+                  <div>
+                    <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1.5">
+                      <span>Risk Score</span>
+                      <span className="font-bold text-white">{localSpreadPrediction.risk_score?.toFixed(0) || 0}/100</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${
+                          localSpreadPrediction.risk_level === 'critical' ? 'bg-gradient-to-r from-red-600 to-red-400' :
+                          localSpreadPrediction.risk_level === 'high' ? 'bg-gradient-to-r from-orange-600 to-orange-400' :
+                          localSpreadPrediction.risk_level === 'moderate' ? 'bg-gradient-to-r from-amber-600 to-amber-400' :
+                          'bg-gradient-to-r from-emerald-600 to-emerald-400'
+                        }`}
+                        style={{ width: `${Math.min(localSpreadPrediction.risk_score || 0, 100)}%` }}
+                      />
+                    </div>
                   </div>
+
+                  {/* Spread direction */}
+                  <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                    <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[10px] text-gray-500 uppercase tracking-wider">Spread Direction</div>
+                      <div className="text-sm font-bold text-white">{localSpreadPrediction.spread_direction?.label || 'N/A'}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] text-gray-500">Wind</div>
+                      <div className="text-xs font-semibold text-sky-400">{localSpreadPrediction.spread_direction?.wind_direction?.toFixed(0) || '--'}°</div>
+                    </div>
+                  </div>
+
+                  {/* Forecast hotspots */}
+                  {localSpreadPrediction.next_hotspots?.length > 0 && (
+                    <div>
+                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Forecast Hotspots</div>
+                      <div className="space-y-2">
+                        {localSpreadPrediction.next_hotspots.map((spot, i) => {
+                          const riskColor = spot.risk_score >= 80 ? 'text-red-400' : spot.risk_score >= 60 ? 'text-orange-400' : spot.risk_score >= 40 ? 'text-amber-400' : 'text-emerald-400';
+                          const barColor = spot.risk_score >= 80 ? 'bg-red-500' : spot.risk_score >= 60 ? 'bg-orange-500' : spot.risk_score >= 40 ? 'bg-amber-500' : 'bg-emerald-500';
+                          return (
+                            <div key={i} className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.02] border border-white/5">
+                              <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold ${riskColor} bg-white/5`}>
+                                {i + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] text-gray-400">{spot.distance_km} km {spot.direction}</span>
+                                  <span className={`text-[10px] font-bold ${riskColor}`}>{spot.risk_score?.toFixed(0)}%</span>
+                                </div>
+                                <div className="h-1 rounded-full bg-white/5 mt-1 overflow-hidden">
+                                  <div className={`h-full rounded-full ${barColor} transition-all duration-500`} style={{ width: `${Math.min(spot.risk_score || 0, 100)}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vulnerable zones */}
+                  {localSpreadPrediction.vulnerable_zones?.length > 0 && (
+                    <div>
+                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Vulnerable Zones</div>
+                      <div className="space-y-2">
+                        {localSpreadPrediction.vulnerable_zones.map((zone, i) => (
+                          <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
+                            <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                              zone.risk === 'high' ? 'bg-red-400' : zone.risk === 'moderate' ? 'bg-amber-400' : 'bg-emerald-400'
+                            }`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-medium text-white">{zone.zone}</span>
+                                <span className="text-[10px] text-gray-500">{zone.distance_km} km</span>
+                              </div>
+                              <p className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">{zone.reason}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
