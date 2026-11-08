@@ -187,7 +187,27 @@ const FireMap = memo(function FireMap({
           try {
             const mapEl = mapRef.current?.getContainer();
             if (!mapEl) return;
-            const canvas = await html2canvas(mapEl, { useCORS: true, allowTaint: true, backgroundColor: '#1a1a2e' });
+            const canvas = await html2canvas(mapEl, {
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: '#1a1a2e',
+              onclone: (clonedDoc) => {
+                // Fix oklab colors that html2canvas can't parse
+                const allEls = clonedDoc.querySelectorAll('*');
+                allEls.forEach((el) => {
+                  const style = el.style;
+                  if (style) {
+                    for (let i = 0; i < style.length; i++) {
+                      const prop = style[i];
+                      const val = style.getPropertyValue(prop);
+                      if (val && val.includes('oklab')) {
+                        style.setProperty(prop, 'rgba(255,255,255,0.5)', style.getPropertyPriority(prop));
+                      }
+                    }
+                  }
+                });
+              },
+            });
             canvas.toBlob((blob) => {
               if (!blob) return;
               const url = URL.createObjectURL(blob);
