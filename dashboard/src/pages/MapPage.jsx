@@ -240,13 +240,12 @@ const FireMap = memo(function FireMap({
         </Marker>
       )}
 
-      <MarkerClusterGroup chunkedLoading maxClusterRadius={60} spiderfyOnMaxZoom showCoverageOnHover={false} zoomToBoundsOnClick>
-        {nearestFire && (
-          <Marker
-            position={[nearestFire.latitude, nearestFire.longitude]}
-            icon={nearestFire.status === 'IN_PROGRESS' ? fireIconYellow : nearestFire.status === 'DETECTED' ? fireIconRed : fireIconOrange}
-            eventHandlers={{ click: () => { if (onFireSelect) onFireSelect(nearestFire); }, popupopen: handlePopupOpen, popupclose: handlePopupClose }}
-          >
+      {nearestFire && (
+        <Marker
+          position={[nearestFire.latitude, nearestFire.longitude]}
+          icon={nearestFire.status === 'IN_PROGRESS' ? fireIconYellow : nearestFire.status === 'DETECTED' ? fireIconRed : fireIconOrange}
+          eventHandlers={{ click: () => { if (onFireSelect) onFireSelect(nearestFire); }, popupopen: handlePopupOpen, popupclose: handlePopupClose }}
+        >
             <Popup>
               <div className="text-sm min-w-[200px]">
                 <div className="flex items-center gap-2 mb-2">
@@ -326,7 +325,6 @@ const FireMap = memo(function FireMap({
             </Popup>
           </Marker>
         ))}
-      </MarkerClusterGroup>
 
       {nearbyPlaces.map((p) => (
         <Marker key={p.id} position={[p.lat, p.lng]} icon={nearbyIconMap[p.type] || nearbyIconMap.hospital}>
