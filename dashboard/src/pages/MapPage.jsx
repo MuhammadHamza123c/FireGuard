@@ -474,10 +474,11 @@ export default function MapPage() {
   const handleMapClick = useCallback((lat, lng) => {
   }, []);
 
-  const handleVerifyFire = useCallback(async (fire, confirm = true) => {
-    if (!fire || !userPos) return;
+  const handleVerifyFire = useCallback(async (fire, confirm = true, coords = null) => {
+    const pos = coords || userPos;
+    if (!fire || !pos) return;
     try {
-      await api.post(`/incidents/${fire.id}/verify`, { latitude: userPos[0], longitude: userPos[1], confirm });
+      await api.post(`/incidents/${fire.id}/verify`, { latitude: pos[0], longitude: pos[1], confirm });
       const updateStatus = (f) => (f && f.id === fire.id ? { ...f, status: confirm ? 'VERIFIED' : 'NOT_VERIFIED' } : f);
       setNearestFire((prev) => updateStatus(prev));
       setNearbyFires((prev) => prev.map(updateStatus));
@@ -520,6 +521,30 @@ export default function MapPage() {
     );
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
+
+  useEffect(() => {
+    const fireId = searchParams.get('fireId');
+    const autoVerify = searchParams.get('autoVerify');
+    if (!fireId || !autoVerify) return;
+    if (autoVerify !== 'confirm' && autoVerify !== 'deny') return;
+
+    const key = `autoVerify:${fireId}:${autoVerify}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    const latN = lat ? parseFloat(lat) : null;
+    const lngN = lng ? parseFloat(lng) : null;
+    const coords = latN && lngN ? [latN, lngN] : userPos;
+    if (latN && lngN) setUserPos([latN, lngN]);
+
+    const confirm = autoVerify === 'confirm';
+    handleVerifyFire({ id: fireId, latitude: latN, longitude: lngN }, confirm, coords);
+
+    // Clean URL
+    window.history.replaceState({}, '', '/map');
+  }, [searchParams]);
 
   useEffect(() => {
     if (lastAlert) {

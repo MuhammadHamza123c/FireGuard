@@ -42,13 +42,25 @@ self.addEventListener('notificationclick', (event) => {
   const lat = data.lat || '';
   const lng = data.lng || '';
   const fireId = data.fire_id || '';
-  const urlToOpen = (lat && lng) ? `/map?lat=${lat}&lng=${lng}&fireId=${fireId}` : (data.url || '/map');
+  const action = event.action || '';
+
+  let urlToOpen = '/map';
+  if (action === 'confirm_fire' || action === 'deny_fire') {
+    const confirmFlag = action === 'confirm_fire' ? 'confirm' : 'deny';
+    urlToOpen = (lat && lng)
+      ? `/map?lat=${lat}&lng=${lng}&fireId=${fireId}&autoVerify=${confirmFlag}`
+      : `/map?fireId=${fireId}&autoVerify=${confirmFlag}`;
+  } else if (lat && lng) {
+    urlToOpen = `/map?lat=${lat}&lng=${lng}&fireId=${fireId}`;
+  } else if (data.url) {
+    urlToOpen = data.url;
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if ('focus' in client) {
-          client.postMessage({ type: 'NOTIFICATION_CLICK', data: { lat, lng, fireId } });
+          client.postMessage({ type: 'NOTIFICATION_CLICK', data: { lat, lng, fireId, action } });
           client.navigate(urlToOpen);
           return client.focus();
         }
