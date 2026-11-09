@@ -394,6 +394,7 @@ export default function MapPage() {
   const [dismissedVerifications, setDismissedVerifications] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('dismissedVerifications') || '[]')); } catch { return new Set(); }
   });
+  const [spreadPrediction, setSpreadPrediction] = useState(null);
   const popupOpenRef = useRef(false);
   const mapRef = useRef(null);
 
@@ -485,7 +486,7 @@ export default function MapPage() {
       const msg = err?.response?.data?.detail || 'Failed to verify fire';
       setToast({ message: msg, type: 'error' });
     }
-  }, [userPos]);
+  }, [userPos, setLiveFires]);
 
   const dismissVerification = useCallback((fireId) => {
     setVerificationPrompt(null);
@@ -495,6 +496,13 @@ export default function MapPage() {
       try { localStorage.setItem('dismissedVerifications', JSON.stringify([...next])); } catch {}
       return next;
     });
+  }, []);
+
+  const handleFireSelect = useCallback((fire) => {
+    if (!fire) return;
+    setSelectedFire(fire);
+    setUserSelectedFire(true);
+    fetchSpreadPrediction(fire.latitude, fire.longitude, fire.fire_confidence || 0.8, fire.smoke_confidence || 0.6);
   }, []);
 
   useEffect(() => {
