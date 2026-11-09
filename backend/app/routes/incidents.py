@@ -10,6 +10,7 @@ from app.services.supabase_db import (
     recalculate_points,
     add_points,
     verify_incident,
+    vote_incident,
 )
 from app.routes.live_alerts import broadcast_fire_verified
 
@@ -79,7 +80,7 @@ async def update_status(
                 detail="You can only update your own incidents",
             )
 
-        valid_statuses = ["DETECTED", "VERIFIED", "IN_PROGRESS", "RESOLVED"]
+        valid_statuses = ["DETECTED", "NOT_VERIFIED", "VERIFIED", "IN_PROGRESS", "RESOLVED"]
         if req.status not in valid_statuses:
             raise HTTPException(
                 status_code=400,
@@ -117,6 +118,7 @@ async def update_status(
 class VerifyIncidentRequest(BaseModel):
     latitude: float
     longitude: float
+    confirm: bool = True
 
 
 @router.post("/{incident_id}/verify")
@@ -134,8 +136,8 @@ async def verify_incident_endpoint(
         if incident.get("user_id") == user["id"]:
             raise HTTPException(status_code=403, detail="You cannot verify your own report")
 
-        if incident.get("status") not in ("DETECTED",):
-            return {"success": True, "message": "Incident already verified", "incident": incident}
+        if incident.get("status") in ("RESOLVED",):
+            return {"success": True, "message": "Incident already resolved", "incident": incident}
 
         # Distance check: verifier must be within 2km
         from app.services.routing import haversine
@@ -145,21 +147,23 @@ async def verify_incident_endpoint(
             raise HTTPException(status_code=400, detail="Incident has no location")
         dist = haversine(inc_lat, inc_lng, req.latitude, req.longitude)
         if dist > 2000:
-            raise HTTPException(status_code=403, detail="You must be within 2 km to verify this fire")
+            raise HTTPException(status_code=403, detail="You must be within 2 km to vote on this fire")
 
-        updated = await verify_incident(incident_id)
+        updated = await vote_incident(incident_id, bool(req.confirm))
         if not updated:
-            raise HTTPException(status_code=500, detail="Failed to verify incident")
+            raise HTTPException(status_code=500, detail="Failed to update incident")
 
-        # Reward verifier
-        try:
-            await add_points(user["id"], 5)
-        except Exception:
-            pass
+        # Reward verifier for confirming
+        if req.confirm:
+            try:
+                await add_points(user["id"], 5)
+            except Exception:
+                pass
 
         await broadcast_fire_verified(updated)
 
-        return {"success": True, "message": "Fire verified", "incident": updated}
+        msg = "Fire verified" if req.confirm else "Marked as not verified"
+        return {"success": True, "message": msg, "incident": updated}
     except HTTPException:
         raise
     except Exception as e:

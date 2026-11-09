@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveCo
 
 const STATUS_COLORS = {
   DETECTED: '#f97316',
+  NOT_VERIFIED: '#6b7280',
   VERIFIED: '#ef4444',
   IN_PROGRESS: '#f59e0b',
   RESOLVED: '#22c55e',
@@ -26,10 +27,11 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function DashboardCharts({ incidents }) {
   const statusData = useMemo(() => {
-    const counts = { DETECTED: 0, VERIFIED: 0, IN_PROGRESS: 0, RESOLVED: 0 };
+    const counts = { DETECTED: 0, NOT_VERIFIED: 0, VERIFIED: 0, IN_PROGRESS: 0, RESOLVED: 0 };
     incidents.forEach((inc) => { counts[inc.status] = (counts[inc.status] || 0) + 1; });
     return [
       { name: 'Unverified', value: counts.DETECTED, color: STATUS_COLORS.DETECTED },
+      { name: 'Not Verified', value: counts.NOT_VERIFIED, color: STATUS_COLORS.NOT_VERIFIED },
       { name: 'Verified', value: counts.VERIFIED, color: STATUS_COLORS.VERIFIED },
       { name: 'In Progress', value: counts.IN_PROGRESS, color: STATUS_COLORS.IN_PROGRESS },
       { name: 'Resolved', value: counts.RESOLVED, color: STATUS_COLORS.RESOLVED },

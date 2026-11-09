@@ -67,6 +67,7 @@ export default function IncidentsPage() {
 
   const statusColors = {
     DETECTED: 'bg-orange-500/10 text-orange-300 border-orange-500/20',
+    NOT_VERIFIED: 'bg-gray-500/10 text-gray-300 border-gray-500/20',
     VERIFIED: 'bg-red-500/10 text-red-300 border-red-500/20',
     IN_PROGRESS: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
     RESOLVED: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
@@ -74,6 +75,7 @@ export default function IncidentsPage() {
 
   const statusMeta = {
     DETECTED: { label: 'Unverified', accent: 'bg-orange-500', glow: 'shadow-orange-500/20' },
+    NOT_VERIFIED: { label: 'Not Verified', accent: 'bg-gray-500', glow: 'shadow-gray-500/20' },
     VERIFIED: { label: 'Verified', accent: 'bg-red-500', glow: 'shadow-red-500/20' },
     IN_PROGRESS: { label: 'In Progress', accent: 'bg-amber-500', glow: 'shadow-amber-500/20' },
     RESOLVED: { label: 'Resolved', accent: 'bg-emerald-500', glow: 'shadow-emerald-500/20' },

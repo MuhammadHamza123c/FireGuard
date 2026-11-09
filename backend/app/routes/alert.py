@@ -54,6 +54,9 @@ async def fire_alert(
             "source": req.source,
             "file_url": req.file_url,
             "audio_url": req.audio_url,
+            "verification_count": 0,
+            "not_verified_count": 0,
+            "priority": 0,
         })
 
         profile = await recalculate_points(user["id"])

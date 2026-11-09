@@ -121,7 +121,9 @@ fire_checker/
 | POST | `/notifications/subscribe` | Yes | Subscribe to push |
 | DELETE | `/notifications/unsubscribe` | Yes | Unsubscribe push |
 
-## Local Development
+### Database migration for verification voting
+
+Run `backend/migrations/add_verification_counts.sql` in the Supabase SQL Editor to add `verification_count`, `not_verified_count`, and `priority` columns.
 
 ### Backend
 

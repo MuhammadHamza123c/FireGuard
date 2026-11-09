@@ -127,6 +127,7 @@ function FireMedia({ fileUrl, audioUrl }) {
 const fireIconRed = createSvgIcon('#ef4444');
 const fireIconYellow = createSvgIcon('#eab308');
 const fireIconOrange = createSvgIcon('#f97316');
+const fireIconGray = createSvgIcon('#6b7280');
 const userIcon = createUserIcon();
 
 const nearbyIconMap = {
@@ -222,16 +223,19 @@ const FireMap = memo(function FireMap({
       {nearestFire && (
         <Marker
           position={[nearestFire.latitude, nearestFire.longitude]}
-          icon={nearestFire.status === 'VERIFIED' ? fireIconRed : nearestFire.status === 'IN_PROGRESS' ? fireIconYellow : fireIconOrange}
+          icon={nearestFire.status === 'VERIFIED' ? fireIconRed : nearestFire.status === 'IN_PROGRESS' ? fireIconYellow : nearestFire.status === 'NOT_VERIFIED' ? fireIconGray : fireIconOrange}
           eventHandlers={{ click: () => { if (onFireSelect) onFireSelect(nearestFire); }, popupopen: handlePopupOpen, popupclose: handlePopupClose }}
         >
             <Popup>
               <div className="text-sm min-w-[200px]">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${nearestFire.status === 'IN_PROGRESS' ? 'bg-yellow-400' : nearestFire.status === 'DETECTED' ? 'bg-orange-400' : nearestFire.status === 'VERIFIED' ? 'bg-red-400' : 'bg-orange-400'}`} />
-                  <strong className={nearestFire.status === 'IN_PROGRESS' ? 'text-yellow-400' : nearestFire.status === 'DETECTED' ? 'text-orange-400' : nearestFire.status === 'VERIFIED' ? 'text-red-400' : 'text-orange-400'}>{nearestFire.incident_type}</strong>
+                  <div className={`w-2.5 h-2.5 rounded-full ${nearestFire.status === 'IN_PROGRESS' ? 'bg-yellow-400' : nearestFire.status === 'DETECTED' ? 'bg-orange-400' : nearestFire.status === 'VERIFIED' ? 'bg-red-400' : nearestFire.status === 'NOT_VERIFIED' ? 'bg-gray-400' : 'bg-orange-400'}`} />
+                  <strong className={nearestFire.status === 'IN_PROGRESS' ? 'text-yellow-400' : nearestFire.status === 'DETECTED' ? 'text-orange-400' : nearestFire.status === 'VERIFIED' ? 'text-red-400' : nearestFire.status === 'NOT_VERIFIED' ? 'text-gray-400' : 'text-orange-400'}>{nearestFire.incident_type}</strong>
                 </div>
                 <div className="inline-block px-2 py-0.5 rounded-md bg-gray-800 text-[10px] text-gray-400 mb-2">{nearestFire.status}</div>
+                {nearestFire.verification_count != null && (
+                  <div className="text-[10px] text-gray-400 mb-2">Verifications: {nearestFire.verification_count} · Not sure: {nearestFire.not_verified_count || 0}</div>
+                )}
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between"><span className="text-gray-500">Fire</span><span className="text-white font-medium">{(nearestFire.fire_confidence * 100).toFixed(1)}%</span></div>
                   <div className="flex justify-between"><span className="text-gray-500">Smoke</span><span className="text-white font-medium">{(nearestFire.smoke_confidence * 100).toFixed(1)}%</span></div>
@@ -252,7 +256,7 @@ const FireMap = memo(function FireMap({
           <Marker
             key={f.id}
             position={[f.latitude, f.longitude]}
-            icon={f.status === 'VERIFIED' ? fireIconRed : f.status === 'IN_PROGRESS' ? fireIconYellow : fireIconOrange}
+            icon={f.status === 'VERIFIED' ? fireIconRed : f.status === 'IN_PROGRESS' ? fireIconYellow : f.status === 'NOT_VERIFIED' ? fireIconGray : fireIconOrange}
             eventHandlers={{ click: () => { if (onFireSelect) onFireSelect(f); }, popupopen: handlePopupOpen, popupclose: handlePopupClose }}
           >
             <Popup>
@@ -280,7 +284,7 @@ const FireMap = memo(function FireMap({
           <Marker
             key={`live-${f.id}`}
             position={[f.latitude, f.longitude]}
-            icon={f.status === 'VERIFIED' ? fireIconRed : f.status === 'IN_PROGRESS' ? fireIconYellow : fireIconOrange}
+            icon={f.status === 'VERIFIED' ? fireIconRed : f.status === 'IN_PROGRESS' ? fireIconYellow : f.status === 'NOT_VERIFIED' ? fireIconGray : fireIconOrange}
             eventHandlers={{ click: () => { if (onFireSelect) onFireSelect(f); }, popupopen: handlePopupOpen, popupclose: handlePopupClose }}
           >
             <Popup>
@@ -470,20 +474,19 @@ export default function MapPage() {
   const handleMapClick = useCallback((lat, lng) => {
   }, []);
 
-  const handleVerifyFire = useCallback(async (fire) => {
+  const handleVerifyFire = useCallback(async (fire, confirm = true) => {
     if (!fire || !userPos) return;
     try {
-      await api.post(`/incidents/${fire.id}/verify`, { latitude: userPos[0], longitude: userPos[1] });
-      // Update local state to VERIFIED
-      const updateStatus = (f) => (f && f.id === fire.id ? { ...f, status: 'VERIFIED' } : f);
+      await api.post(`/incidents/${fire.id}/verify`, { latitude: userPos[0], longitude: userPos[1], confirm });
+      const updateStatus = (f) => (f && f.id === fire.id ? { ...f, status: confirm ? 'VERIFIED' : 'NOT_VERIFIED' } : f);
       setNearestFire((prev) => updateStatus(prev));
       setNearbyFires((prev) => prev.map(updateStatus));
       setSelectedFire((prev) => updateStatus(prev));
       setLiveFires((prev) => prev.map(updateStatus));
       setVerificationPrompt(null);
-      setToast({ message: 'Fire verified — marked as top priority', type: 'success' });
+      setToast({ message: confirm ? 'Fire verified — marked as top priority' : 'Marked as not verified', type: confirm ? 'success' : 'info' });
     } catch (err) {
-      const msg = err?.response?.data?.detail || 'Failed to verify fire';
+      const msg = err?.response?.data?.detail || 'Failed to update fire';
       setToast({ message: msg, type: 'error' });
     }
   }, [userPos, setLiveFires]);
@@ -833,10 +836,10 @@ export default function MapPage() {
               {verificationPrompt.city || verificationPrompt.region || 'Unknown area'} — {verificationPrompt.incident_type || 'FIRE DETECTED'}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => dismissVerification(verificationPrompt.id)} className="flex-1 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-400 font-medium transition-all">
-                Not sure
+              <button onClick={() => handleVerifyFire(verificationPrompt, false)} className="flex-1 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-400 font-medium transition-all">
+                Not sure / No fire
               </button>
-              <button onClick={() => handleVerifyFire(verificationPrompt)} className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold transition-all">
+              <button onClick={() => handleVerifyFire(verificationPrompt, true)} className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold transition-all">
                 Yes, fire here
               </button>
             </div>
