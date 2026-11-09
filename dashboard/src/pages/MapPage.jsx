@@ -1091,6 +1091,11 @@ export default function MapPage() {
                         <div className="text-[11px] text-gray-300 leading-relaxed">{localSelectedFire.message}</div>
                       </div>
                     )}
+                    {localSelectedFire.user_name && (
+                      <div className="text-[10px] text-gray-500">
+                        Posted by: <span className="text-gray-300 font-medium">{localSelectedFire.user_name}</span>
+                      </div>
+                    )}
                     <FireMedia fileUrl={localSelectedFire.file_url} audioUrl={localSelectedFire.audio_url} />
                   </div>
                 </div>
