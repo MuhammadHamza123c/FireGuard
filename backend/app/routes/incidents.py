@@ -132,10 +132,6 @@ async def verify_incident_endpoint(
         if not incident:
             raise HTTPException(status_code=404, detail="Incident not found")
 
-        # Reporter cannot verify their own report
-        if incident.get("user_id") == user["id"]:
-            raise HTTPException(status_code=403, detail="You cannot verify your own report")
-
         if incident.get("status") in ("RESOLVED",):
             return {"success": True, "message": "Incident already resolved", "incident": incident}
 
@@ -146,15 +142,15 @@ async def verify_incident_endpoint(
         if inc_lat is None or inc_lng is None:
             raise HTTPException(status_code=400, detail="Incident has no location")
         dist = haversine(inc_lat, inc_lng, req.latitude, req.longitude)
-        if dist > 2000:
-            raise HTTPException(status_code=403, detail="You must be within 2 km to vote on this fire")
+        if dist > 5000:
+            raise HTTPException(status_code=403, detail="You must be within 5 km to vote on this fire")
 
         updated = await vote_incident(incident_id, bool(req.confirm))
         if not updated:
             raise HTTPException(status_code=500, detail="Failed to update incident")
 
-        # Reward verifier for confirming
-        if req.confirm:
+        # Reward verifier for confirming (skip reporter to avoid self-boosting points)
+        if req.confirm and incident.get("user_id") != user["id"]:
             try:
                 await add_points(user["id"], 5)
             except Exception:
