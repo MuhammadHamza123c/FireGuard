@@ -107,7 +107,8 @@ export function generateIncidentPDF(incidents, stats) {
   y += 4;
 
   const statusColors = {
-    DETECTED: [200, 50, 50],
+    DETECTED: [249, 115, 22],
+    VERIFIED: [239, 68, 68],
     IN_PROGRESS: [200, 140, 20],
     RESOLVED: [30, 150, 70],
   };

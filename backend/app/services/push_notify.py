@@ -116,6 +116,7 @@ def send_fire_alert(tokens: list[str], fire_data: dict) -> dict:
         "incident_type": incident_type,
         "file_url": file_url or "",
         "audio_url": fire_data.get("audio_url") or "",
+        "verify": "1",
         "url": "/map",
     }
 

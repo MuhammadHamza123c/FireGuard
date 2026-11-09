@@ -112,7 +112,7 @@ fire_checker/
 | GET | `/incidents` | Yes | List user incidents |
 | GET | `/incidents/{id}` | Yes | Get incident detail |
 | PUT | `/incidents/{id}` | Yes | Update incident status |
-| DELETE | `/incidents/{id}` | Yes | Delete incident |
+| POST | `/incidents/{id}/verify` | Yes | Verify a nearby fire report (marks it as top priority) |
 | POST | `/nearest_fire` | No | Find nearest fire + route |
 | GET | `/profile/me` | Yes | Get user profile |
 | WS | `/ws/live-alerts` | No | Live fire alerts |

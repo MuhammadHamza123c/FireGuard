@@ -66,20 +66,23 @@ export default function IncidentsPage() {
   const filtered = filter === 'ALL' ? incidents : incidents.filter((i) => i.status === filter);
 
   const statusColors = {
-    DETECTED: 'bg-red-500/10 text-red-300 border-red-500/20',
+    DETECTED: 'bg-orange-500/10 text-orange-300 border-orange-500/20',
+    VERIFIED: 'bg-red-500/10 text-red-300 border-red-500/20',
     IN_PROGRESS: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
     RESOLVED: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
   };
 
   const statusMeta = {
-    DETECTED: { label: 'Detected', accent: 'bg-red-500', glow: 'shadow-red-500/20' },
+    DETECTED: { label: 'Unverified', accent: 'bg-orange-500', glow: 'shadow-orange-500/20' },
+    VERIFIED: { label: 'Verified', accent: 'bg-red-500', glow: 'shadow-red-500/20' },
     IN_PROGRESS: { label: 'In Progress', accent: 'bg-amber-500', glow: 'shadow-amber-500/20' },
     RESOLVED: { label: 'Resolved', accent: 'bg-emerald-500', glow: 'shadow-emerald-500/20' },
   };
 
   const filters = [
     { key: 'ALL', label: 'All', count: incidents.length },
-    { key: 'DETECTED', label: 'Detected', count: incidents.filter((i) => i.status === 'DETECTED').length },
+    { key: 'DETECTED', label: 'Unverified', count: incidents.filter((i) => i.status === 'DETECTED').length },
+    { key: 'VERIFIED', label: 'Verified', count: incidents.filter((i) => i.status === 'VERIFIED').length },
     { key: 'IN_PROGRESS', label: 'In Progress', count: incidents.filter((i) => i.status === 'IN_PROGRESS').length },
     { key: 'RESOLVED', label: 'Resolved', count: incidents.filter((i) => i.status === 'RESOLVED').length },
   ];
@@ -232,7 +235,7 @@ export default function IncidentsPage() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                          {inc.status === 'DETECTED' && (
+                          {(inc.status === 'DETECTED' || inc.status === 'VERIFIED') && (
                             <button
                               onClick={() => updateStatus(inc.id, 'IN_PROGRESS')}
                               disabled={updating === inc.id}

@@ -222,14 +222,14 @@ const FireMap = memo(function FireMap({
       {nearestFire && (
         <Marker
           position={[nearestFire.latitude, nearestFire.longitude]}
-          icon={nearestFire.status === 'IN_PROGRESS' ? fireIconYellow : nearestFire.status === 'DETECTED' ? fireIconRed : fireIconOrange}
+          icon={nearestFire.status === 'VERIFIED' ? fireIconRed : nearestFire.status === 'IN_PROGRESS' ? fireIconYellow : fireIconOrange}
           eventHandlers={{ click: () => { if (onFireSelect) onFireSelect(nearestFire); }, popupopen: handlePopupOpen, popupclose: handlePopupClose }}
         >
             <Popup>
               <div className="text-sm min-w-[200px]">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${nearestFire.status === 'IN_PROGRESS' ? 'bg-yellow-400' : nearestFire.status === 'DETECTED' ? 'bg-red-400' : 'bg-orange-400'}`} />
-                  <strong className={nearestFire.status === 'IN_PROGRESS' ? 'text-yellow-400' : nearestFire.status === 'DETECTED' ? 'text-red-400' : 'text-orange-400'}>{nearestFire.incident_type}</strong>
+                  <div className={`w-2.5 h-2.5 rounded-full ${nearestFire.status === 'IN_PROGRESS' ? 'bg-yellow-400' : nearestFire.status === 'DETECTED' ? 'bg-orange-400' : nearestFire.status === 'VERIFIED' ? 'bg-red-400' : 'bg-orange-400'}`} />
+                  <strong className={nearestFire.status === 'IN_PROGRESS' ? 'text-yellow-400' : nearestFire.status === 'DETECTED' ? 'text-orange-400' : nearestFire.status === 'VERIFIED' ? 'text-red-400' : 'text-orange-400'}>{nearestFire.incident_type}</strong>
                 </div>
                 <div className="inline-block px-2 py-0.5 rounded-md bg-gray-800 text-[10px] text-gray-400 mb-2">{nearestFire.status}</div>
                 <div className="space-y-1.5 text-xs">
@@ -252,7 +252,7 @@ const FireMap = memo(function FireMap({
           <Marker
             key={f.id}
             position={[f.latitude, f.longitude]}
-            icon={f.status === 'IN_PROGRESS' ? fireIconYellow : f.status === 'DETECTED' ? fireIconRed : fireIconOrange}
+            icon={f.status === 'VERIFIED' ? fireIconRed : f.status === 'IN_PROGRESS' ? fireIconYellow : fireIconOrange}
             eventHandlers={{ click: () => { if (onFireSelect) onFireSelect(f); }, popupopen: handlePopupOpen, popupclose: handlePopupClose }}
           >
             <Popup>
@@ -280,7 +280,7 @@ const FireMap = memo(function FireMap({
           <Marker
             key={`live-${f.id}`}
             position={[f.latitude, f.longitude]}
-            icon={fireIconRed}
+            icon={f.status === 'VERIFIED' ? fireIconRed : f.status === 'IN_PROGRESS' ? fireIconYellow : fireIconOrange}
             eventHandlers={{ click: () => { if (onFireSelect) onFireSelect(f); }, popupopen: handlePopupOpen, popupclose: handlePopupClose }}
           >
             <Popup>
@@ -386,13 +386,20 @@ export default function MapPage() {
   const [toast, setToast] = useState(null);
   const [mapStyle, setMapStyle] = useState('satellite');
   const [showSidebar, setShowSidebar] = useState(true);
-  const { liveFires, connected, lastAlert } = useLiveAlerts();
+  const { liveFires, connected, lastAlert, setLiveFires } = useLiveAlerts();
   const [weather, setWeather] = useState(null);
   const [showWeather, setShowWeather] = useState(false);
   const [weatherCoords, setWeatherCoords] = useState(null);
-  const [spreadPrediction, setSpreadPrediction] = useState(null);
+  const [verificationPrompt, setVerificationPrompt] = useState(null);
+  const [dismissedVerifications, setDismissedVerifications] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('dismissedVerifications') || '[]')); } catch { return new Set(); }
+  });
   const popupOpenRef = useRef(false);
   const mapRef = useRef(null);
+
+  useEffect(() => {
+    try { localStorage.setItem('dismissedVerifications', JSON.stringify([...dismissedVerifications])); } catch {}
+  }, [dismissedVerifications]);
 
   const handlePopupOpen = useCallback(() => {
     popupOpenRef.current = true;
@@ -462,11 +469,32 @@ export default function MapPage() {
   const handleMapClick = useCallback((lat, lng) => {
   }, []);
 
-  const handleFireSelect = useCallback((fire) => {
-    if (!fire) return;
-    setSelectedFire(fire);
-    setUserSelectedFire(true);
-    fetchSpreadPrediction(fire.latitude, fire.longitude, fire.fire_confidence || 0.8, fire.smoke_confidence || 0.6);
+  const handleVerifyFire = useCallback(async (fire) => {
+    if (!fire || !userPos) return;
+    try {
+      await api.post(`/incidents/${fire.id}/verify`, { latitude: userPos[0], longitude: userPos[1] });
+      // Update local state to VERIFIED
+      const updateStatus = (f) => (f && f.id === fire.id ? { ...f, status: 'VERIFIED' } : f);
+      setNearestFire((prev) => updateStatus(prev));
+      setNearbyFires((prev) => prev.map(updateStatus));
+      setSelectedFire((prev) => updateStatus(prev));
+      setLiveFires((prev) => prev.map(updateStatus));
+      setVerificationPrompt(null);
+      setToast({ message: 'Fire verified — marked as top priority', type: 'success' });
+    } catch (err) {
+      const msg = err?.response?.data?.detail || 'Failed to verify fire';
+      setToast({ message: msg, type: 'error' });
+    }
+  }, [userPos]);
+
+  const dismissVerification = useCallback((fireId) => {
+    setVerificationPrompt(null);
+    setDismissedVerifications((prev) => {
+      const next = new Set(prev);
+      next.add(fireId);
+      try { localStorage.setItem('dismissedVerifications', JSON.stringify([...next])); } catch {}
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -488,6 +516,15 @@ export default function MapPage() {
       if (!popupOpenRef.current) {
         setToast({ message: `New fire detected in ${area}!`, type: 'warning' });
         if (userPos) findNearest(true);
+      }
+      // Ask nearby users to confirm unverified fires
+      if (
+        userPos &&
+        lastAlert.status === 'DETECTED' &&
+        !dismissedVerifications.has(lastAlert.id) &&
+        getDistance(userPos[0], userPos[1], lastAlert.latitude, lastAlert.longitude) <= 2000
+      ) {
+        setVerificationPrompt(lastAlert);
       }
     }
   }, [lastAlert, userPos]);
@@ -529,6 +566,15 @@ export default function MapPage() {
         if (!userSelectedFire) {
           setSelectedFire(data.nearest_fire);
           setUserSelectedFire(false);
+        }
+        // Prompt verification for unverified nearby fires
+        if (
+          data.nearest_fire.status === 'DETECTED' &&
+          !dismissedVerifications.has(data.nearest_fire.id) &&
+          userPos &&
+          getDistance(userPos[0], userPos[1], data.nearest_fire.latitude, data.nearest_fire.longitude) <= 2000
+        ) {
+          setVerificationPrompt(data.nearest_fire);
         }
         const count = (data.nearby_fires || []).length;
         if (!silent) {
@@ -761,6 +807,34 @@ export default function MapPage() {
   return (
     <Layout>
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+
+      {verificationPrompt && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => dismissVerification(verificationPrompt.id)} />
+          <div className="glass rounded-2xl w-full max-w-md p-5 relative z-10 animate-fadeInUp">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" /></svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Confirm fire nearby?</h3>
+                <p className="text-xs text-gray-400">A fire was reported within 2 km of you.</p>
+              </div>
+            </div>
+            <div className="mb-4 text-sm text-gray-300">
+              {verificationPrompt.city || verificationPrompt.region || 'Unknown area'} — {verificationPrompt.incident_type || 'FIRE DETECTED'}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => dismissVerification(verificationPrompt.id)} className="flex-1 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-400 font-medium transition-all">
+                Not sure
+              </button>
+              <button onClick={() => handleVerifyFire(verificationPrompt)} className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold transition-all">
+                Yes, fire here
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="h-[calc(100vh-4rem)] -m-8 flex flex-col">
 

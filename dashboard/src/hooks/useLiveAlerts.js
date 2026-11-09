@@ -43,6 +43,10 @@ export default function useLiveAlerts() {
             return [...prev, msg.fire];
           });
         }
+        if (msg.type === 'fire_verified' && msg.fire) {
+          setLiveFires((prev) => prev.map((f) => f.id === msg.fire.id ? { ...f, ...msg.fire } : f));
+          setLastAlert((prev) => (prev && prev.id === msg.fire.id ? { ...prev, ...msg.fire } : prev));
+        }
       } catch {}
     };
 
@@ -76,5 +80,5 @@ export default function useLiveAlerts() {
     setLiveFires((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
-  return { liveFires, connected, lastAlert, removeFire };
+  return { liveFires, connected, lastAlert, removeFire, setLiveFires };
 }

@@ -9,7 +9,9 @@ from app.services.supabase_db import (
     delete_incident,
     recalculate_points,
     add_points,
+    verify_incident,
 )
+from app.routes.live_alerts import broadcast_fire_verified
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
 
@@ -77,7 +79,7 @@ async def update_status(
                 detail="You can only update your own incidents",
             )
 
-        valid_statuses = ["DETECTED", "IN_PROGRESS", "RESOLVED"]
+        valid_statuses = ["DETECTED", "VERIFIED", "IN_PROGRESS", "RESOLVED"]
         if req.status not in valid_statuses:
             raise HTTPException(
                 status_code=400,
@@ -106,6 +108,58 @@ async def update_status(
             "incident": updated,
             "profile": profile,
         }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class VerifyIncidentRequest(BaseModel):
+    latitude: float
+    longitude: float
+
+
+@router.post("/{incident_id}/verify")
+async def verify_incident_endpoint(
+    incident_id: str,
+    req: VerifyIncidentRequest,
+    user: dict = Depends(get_current_user),
+):
+    try:
+        incident = await get_incident_by_id(incident_id)
+        if not incident:
+            raise HTTPException(status_code=404, detail="Incident not found")
+
+        # Reporter cannot verify their own report
+        if incident.get("user_id") == user["id"]:
+            raise HTTPException(status_code=403, detail="You cannot verify your own report")
+
+        if incident.get("status") not in ("DETECTED",):
+            return {"success": True, "message": "Incident already verified", "incident": incident}
+
+        # Distance check: verifier must be within 2km
+        from app.services.routing import haversine
+        inc_lat = incident.get("latitude")
+        inc_lng = incident.get("longitude")
+        if inc_lat is None or inc_lng is None:
+            raise HTTPException(status_code=400, detail="Incident has no location")
+        dist = haversine(inc_lat, inc_lng, req.latitude, req.longitude)
+        if dist > 2000:
+            raise HTTPException(status_code=403, detail="You must be within 2 km to verify this fire")
+
+        updated = await verify_incident(incident_id)
+        if not updated:
+            raise HTTPException(status_code=500, detail="Failed to verify incident")
+
+        # Reward verifier
+        try:
+            await add_points(user["id"], 5)
+        except Exception:
+            pass
+
+        await broadcast_fire_verified(updated)
+
+        return {"success": True, "message": "Fire verified", "incident": updated}
     except HTTPException:
         raise
     except Exception as e:

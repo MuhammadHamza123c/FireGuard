@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid } from 'recharts';
 
 const STATUS_COLORS = {
-  DETECTED: '#ef4444',
+  DETECTED: '#f97316',
+  VERIFIED: '#ef4444',
   IN_PROGRESS: '#f59e0b',
   RESOLVED: '#22c55e',
 };
@@ -25,10 +26,11 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function DashboardCharts({ incidents }) {
   const statusData = useMemo(() => {
-    const counts = { DETECTED: 0, IN_PROGRESS: 0, RESOLVED: 0 };
+    const counts = { DETECTED: 0, VERIFIED: 0, IN_PROGRESS: 0, RESOLVED: 0 };
     incidents.forEach((inc) => { counts[inc.status] = (counts[inc.status] || 0) + 1; });
     return [
-      { name: 'Detected', value: counts.DETECTED, color: STATUS_COLORS.DETECTED },
+      { name: 'Unverified', value: counts.DETECTED, color: STATUS_COLORS.DETECTED },
+      { name: 'Verified', value: counts.VERIFIED, color: STATUS_COLORS.VERIFIED },
       { name: 'In Progress', value: counts.IN_PROGRESS, color: STATUS_COLORS.IN_PROGRESS },
       { name: 'Resolved', value: counts.RESOLVED, color: STATUS_COLORS.RESOLVED },
     ].filter((d) => d.value > 0);

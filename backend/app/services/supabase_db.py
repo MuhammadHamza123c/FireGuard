@@ -150,6 +150,40 @@ async def delete_incident(incident_id: str, user_id: str) -> bool:
         return True  # Assume deleted if can't verify
 
 
+async def verify_incident(incident_id: str) -> dict | None:
+    """Mark an incident as VERIFIED (confirmed by a nearby user)."""
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        check = await client.get(
+            f"{SUPABASE_URL}/rest/v1/fire_detections"
+            f"?id=eq.{incident_id}&select=*",
+            headers=DB_HEADERS,
+        )
+        if check.status_code != 200 or not check.json():
+            return None
+
+        incident = check.json()[0]
+        if incident.get("status") not in ("DETECTED",):
+            return incident
+
+        res = await client.patch(
+            f"{SUPABASE_URL}/rest/v1/fire_detections"
+            f"?id=eq.{incident_id}",
+            json={"status": "VERIFIED"},
+            headers=DB_HEADERS,
+        )
+        if res.status_code not in (200, 204):
+            raise Exception(f"Verify failed: {res.text}")
+
+        verify = await client.get(
+            f"{SUPABASE_URL}/rest/v1/fire_detections"
+            f"?id=eq.{incident_id}&select=*",
+            headers=DB_HEADERS,
+        )
+        if verify.status_code == 200 and verify.json():
+            return verify.json()[0]
+        return None
+
+
 # ─── User Profiles ───────────────────────────────────────────────
 
 

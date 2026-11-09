@@ -37,6 +37,13 @@ async def broadcast_fire_alert(record: dict):
     })
 
 
+async def broadcast_fire_verified(record: dict):
+    await manager.broadcast({
+        "type": "fire_verified",
+        "fire": record,
+    })
+
+
 @router.websocket("/ws/live-alerts")
 async def live_alerts(ws: WebSocket):
     await manager.connect(ws)
