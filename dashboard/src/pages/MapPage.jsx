@@ -8,6 +8,7 @@ import 'react-leaflet-markercluster/styles';
 import Layout from '../components/Layout';
 import Toast from '../components/Toast';
 import api from '../api/axios';
+import useLiveAlerts from '../hooks/useLiveAlerts';
 import { useAuth } from '../context/AuthContext';
 
 
@@ -390,6 +391,7 @@ export default function MapPage() {
   const [toast, setToast] = useState(null);
   const [mapStyle, setMapStyle] = useState('satellite');
   const [showSidebar, setShowSidebar] = useState(true);
+  const { liveFires, connected, lastAlert, setLiveFires } = useLiveAlerts();
   const { user } = useAuth();
   const [weather, setWeather] = useState(null);
   const [showWeather, setShowWeather] = useState(false);
