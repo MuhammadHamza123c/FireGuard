@@ -395,16 +395,10 @@ export default function MapPage() {
   const [showWeather, setShowWeather] = useState(false);
   const [weatherCoords, setWeatherCoords] = useState(null);
   const [verificationPrompt, setVerificationPrompt] = useState(null);
-  const [dismissedVerifications, setDismissedVerifications] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('dismissedVerifications') || '[]')); } catch { return new Set(); }
-  });
+  const [dismissedVerifications, setDismissedVerifications] = useState(() => new Set());
   const [spreadPrediction, setSpreadPrediction] = useState(null);
   const popupOpenRef = useRef(false);
   const mapRef = useRef(null);
-
-  useEffect(() => {
-    try { localStorage.setItem('dismissedVerifications', JSON.stringify([...dismissedVerifications])); } catch {}
-  }, [dismissedVerifications]);
 
   const handlePopupOpen = useCallback(() => {
     popupOpenRef.current = true;
@@ -497,7 +491,6 @@ export default function MapPage() {
     setDismissedVerifications((prev) => {
       const next = new Set(prev);
       next.add(fireId);
-      try { localStorage.setItem('dismissedVerifications', JSON.stringify([...next])); } catch {}
       return next;
     });
   }, []);
@@ -558,7 +551,7 @@ export default function MapPage() {
         userPos &&
         lastAlert.status === 'DETECTED' &&
         !dismissedVerifications.has(lastAlert.id) &&
-        getDistance(userPos[0], userPos[1], lastAlert.latitude, lastAlert.longitude) <= 2000
+        getDistance(userPos[0], userPos[1], lastAlert.latitude, lastAlert.longitude) <= 5000
       ) {
         setVerificationPrompt(lastAlert);
       }
@@ -608,7 +601,7 @@ export default function MapPage() {
           data.nearest_fire.status === 'DETECTED' &&
           !dismissedVerifications.has(data.nearest_fire.id) &&
           userPos &&
-          getDistance(userPos[0], userPos[1], data.nearest_fire.latitude, data.nearest_fire.longitude) <= 2000
+          getDistance(userPos[0], userPos[1], data.nearest_fire.latitude, data.nearest_fire.longitude) <= 5000
         ) {
           setVerificationPrompt(data.nearest_fire);
         }

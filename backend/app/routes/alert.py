@@ -85,6 +85,9 @@ async def fire_alert(
                         dist = haversine(fire_lat, fire_lng, t_lat, t_lng)
                         if dist <= 5000:
                             nearby_tokens.append(t["fcm_token"])
+                    else:
+                        # Unknown token location: still notify
+                        nearby_tokens.append(t["fcm_token"])
             else:
                 # If fire location unknown, send to all
                 nearby_tokens = [t["fcm_token"] for t in all_tokens]
