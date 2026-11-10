@@ -1,3 +1,41 @@
+importScripts('https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging-compat.js');
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDKvtl9u7CM36FxAxRRpFtLP7LsYVsC4D4",
+  authDomain: "fireguard-notifications.firebaseapp.com",
+  projectId: "fireguard-notifications",
+  storageBucket: "fireguard-notifications.firebasestorage.app",
+  messagingSenderId: "892653942568",
+  appId: "1:892653942568:web:1c142342e3a8a3c6aa421d",
+};
+
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+  const title = payload.notification?.title || 'Fire Alert';
+  const imageUrl = payload.notification?.image || payload.data?.file_url || null;
+  const fireId = payload.data?.fire_id || '';
+  const reporterId = payload.data?.reporter_id || '';
+  const isVideo = imageUrl && /\.(mp4|webm|ogg|mov)(\?|$)/i.test(imageUrl);
+
+  const options = {
+    body: payload.notification?.body || 'New fire detected nearby',
+    icon: '/icon.png',
+    badge: '/icon.png',
+    tag: 'fire-alert-' + fireId,
+    renotify: true,
+    data: { ...(payload.data || {}), reporter_id: reporterId },
+  };
+
+  if (imageUrl && !isVideo) {
+    options.image = imageUrl;
+  }
+
+  self.registration.showNotification(title, options);
+});
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
