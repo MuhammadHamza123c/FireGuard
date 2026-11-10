@@ -132,6 +132,10 @@ async def verify_incident_endpoint(
         if not incident:
             raise HTTPException(status_code=404, detail="Incident not found")
 
+        # Don't let the reporter verify their own report
+        if incident.get("user_id") == user["id"]:
+            raise HTTPException(status_code=403, detail="You cannot verify your own report")
+
         if incident.get("status") in ("RESOLVED",):
             return {"success": True, "message": "Incident already resolved", "incident": incident}
 

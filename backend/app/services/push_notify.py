@@ -117,7 +117,7 @@ def send_fire_alert(tokens: list[str], fire_data: dict) -> dict:
         body += f" \u2014 {message}"
 
     data = {
-        "fire_id": str(fire_data.get("id", "")),
+        "reporter_id": str(fire_data.get("user_id", "")),
         "lat": str(fire_data.get("latitude", "")),
         "lng": str(fire_data.get("longitude", "")),
         "city": city,

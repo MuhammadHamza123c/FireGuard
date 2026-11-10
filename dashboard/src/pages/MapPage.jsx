@@ -8,7 +8,7 @@ import 'react-leaflet-markercluster/styles';
 import Layout from '../components/Layout';
 import Toast from '../components/Toast';
 import api from '../api/axios';
-import useLiveAlerts from '../hooks/useLiveAlerts';
+import { useAuth } from '../context/AuthContext';
 
 
 function createSvgIcon(color, size = 36) {
@@ -390,7 +390,7 @@ export default function MapPage() {
   const [toast, setToast] = useState(null);
   const [mapStyle, setMapStyle] = useState('satellite');
   const [showSidebar, setShowSidebar] = useState(true);
-  const { liveFires, connected, lastAlert, setLiveFires } = useLiveAlerts();
+  const { user } = useAuth();
   const [weather, setWeather] = useState(null);
   const [showWeather, setShowWeather] = useState(false);
   const [weatherCoords, setWeatherCoords] = useState(null);
@@ -521,6 +521,9 @@ export default function MapPage() {
     if (!fireId || !autoVerify) return;
     if (autoVerify !== 'confirm' && autoVerify !== 'deny') return;
 
+    const reporterId = searchParams.get('reporterId');
+    if (user && reporterId && reporterId === user.id) return; // don't auto-verify own report
+
     const key = `autoVerify:${fireId}:${autoVerify}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, '1');
@@ -551,7 +554,9 @@ export default function MapPage() {
         userPos &&
         lastAlert.status === 'DETECTED' &&
         !dismissedVerifications.has(lastAlert.id) &&
-        getDistance(userPos[0], userPos[1], lastAlert.latitude, lastAlert.longitude) <= 5000
+        getDistance(userPos[0], userPos[1], lastAlert.latitude, lastAlert.longitude) <= 5000 &&
+        user &&
+        lastAlert.user_id !== user.id
       ) {
         setVerificationPrompt(lastAlert);
       }
@@ -601,7 +606,9 @@ export default function MapPage() {
           data.nearest_fire.status === 'DETECTED' &&
           !dismissedVerifications.has(data.nearest_fire.id) &&
           userPos &&
-          getDistance(userPos[0], userPos[1], data.nearest_fire.latitude, data.nearest_fire.longitude) <= 5000
+          getDistance(userPos[0], userPos[1], data.nearest_fire.latitude, data.nearest_fire.longitude) <= 5000 &&
+          user &&
+          data.nearest_fire.user_id !== user.id
         ) {
           setVerificationPrompt(data.nearest_fire);
         }

@@ -388,7 +388,7 @@ async def get_all_push_tokens() -> list:
     async with httpx.AsyncClient(timeout=30.0) as client:
         res = await client.get(
             f"{SUPABASE_URL}/rest/v1/push_tokens"
-            "?select=fcm_token,latitude,longitude",
+            "?select=fcm_token,latitude,longitude,user_id",
             headers=DB_HEADERS,
         )
         if res.status_code != 200:
@@ -399,6 +399,7 @@ async def get_all_push_tokens() -> list:
                 "fcm_token": r["fcm_token"],
                 "latitude": r.get("latitude"),
                 "longitude": r.get("longitude"),
+                "user_id": r.get("user_id"),
             }
             for r in records
             if r.get("fcm_token")

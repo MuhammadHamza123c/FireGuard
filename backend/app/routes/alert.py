@@ -79,6 +79,9 @@ async def fire_alert(
             nearby_tokens = []
             if fire_lat is not None and fire_lng is not None:
                 for t in all_tokens:
+                    # Don't notify the reporter themselves
+                    if t.get("user_id") == user["id"]:
+                        continue
                     t_lat = t.get("latitude")
                     t_lng = t.get("longitude")
                     if t_lat is not None and t_lng is not None:
@@ -90,7 +93,7 @@ async def fire_alert(
                         nearby_tokens.append(t["fcm_token"])
             else:
                 # If fire location unknown, send to all
-                nearby_tokens = [t["fcm_token"] for t in all_tokens]
+                nearby_tokens = [t["fcm_token"] for t in all_tokens if t.get("user_id") != user["id"]]
 
             if nearby_tokens:
                 result = send_fire_alert(nearby_tokens, record)
